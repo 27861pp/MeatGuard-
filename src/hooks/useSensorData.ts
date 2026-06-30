@@ -1,0 +1,156 @@
+import { useEffect, useRef, useState } from "react";
+import { onValue, ref } from "firebase/database";
+import { DEMO_MODE, db } from "@/lib/firebase";
+import type { SensorReading } from "@/lib/analysis";
+import {
+  initialSimState,
+  nextSimState,
+  seedHistory,
+  stateToReading,
+  type SimState,
+} from "@/lib/mockSensor";
+
+const MAX_HISTORY = 30;
+const DEMO_INTERVAL_MS = 3000;
+
+export type ConnectionStatus =
+  | "live" // real data flowing from Firebase
+  | "waiting" // connected, but no sensor data yet → showing simulation
+  | "demo" // no Firebase configured → local simulation
+  | "connecting"
+  | "offline";
+
+interface SensorState {
+  latest: SensorReading | null;
+  history: SensorReading[];
+  status: ConnectionStatus;
+}
+
+/** Coerce arbitrary Firebase payloads into a clean SensorReading. */
+function normalize(raw: unknown, fallbackTs: number): SensorReading | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const num = (v: unknown, d = 0) => {
+    const n = typeof v === "string" ? parseFloat(v) : (v as number);
+    return Number.isFinite(n) ? n : d;
+  };
+  return {
+    temperature: num(o.temperature),
+    humidity: num(o.humidity),
+    nh3: num(o.nh3),
+    h2s: num(o.h2s),
+    timestamp: num(o.timestamp, fallbackTs),
+  };
+}
+
+/**
+ * Subscribes to `meat/latest` (+ `meat/history`) in Firebase, or runs the
+ * local simulator in DEMO MODE. Returns the freshest reading plus a rolling
+ * window for the charts.
+ */
+export function useSensorData(): SensorState {
+  const [latest, setLatest] = useState<SensorReading | null>(null);
+  const [history, setHistory] = useState<SensorReading[]>([]);
+  const [status, setStatus] = useState<ConnectionStatus>(
+    DEMO_MODE ? "demo" : "connecting"
+  );
+  const simRef = useRef<SimState>(initialSimState());
+
+  useEffect(() => {
+    const runSimulator = (initialStatus: ConnectionStatus) => {
+      const now = Date.now();
+      const seeded = seedHistory(MAX_HISTORY, now);
+      setHistory(seeded);
+      setLatest(seeded[seeded.length - 1]);
+      setStatus(initialStatus);
+      return window.setInterval(() => {
+        simRef.current = nextSimState(simRef.current);
+        const reading = stateToReading(simRef.current, Date.now());
+        setLatest(reading);
+        setHistory((h) => [...h, reading].slice(-MAX_HISTORY));
+      }, DEMO_INTERVAL_MS);
+    };
+
+    // ── DEMO MODE: no Firebase configured → pure local feed ───────────
+    if (DEMO_MODE || !db) {
+      const id = runSimulator("demo");
+      return () => window.clearInterval(id);
+    }
+
+    // ── LIVE MODE: Firebase Realtime Database ─────────────────────────
+    // If the DB has no sensor data yet (e.g. ESP32 not connected), we keep
+    // a simulation running so the dashboard never shows dead zeros, and
+    // switch to real data automatically the moment it arrives.
+    const latestRef = ref(db, "meat/latest");
+    const historyRef = ref(db, "meat/history");
+    let simId: number | undefined;
+    let gotLive = false;
+
+    const stopSim = () => {
+      if (simId !== undefined) {
+        window.clearInterval(simId);
+        simId = undefined;
+      }
+    };
+    // Start (or keep) the simulator and reflect the given status. Used whenever
+    // there is no real signal yet: empty DB, all-zero data, or a read error
+    // (e.g. security rules not applied) — so the dashboard never stalls.
+    const ensureSim = (st: ConnectionStatus) => {
+      if (gotLive) return;
+      setStatus(st);
+      if (simId === undefined) simId = runSimulator(st);
+    };
+
+    const offLatest = onValue(
+      latestRef,
+      (snap) => {
+        const reading = snap.exists() ? normalize(snap.val(), Date.now()) : null;
+        const hasSignal =
+          reading !== null &&
+          (reading.temperature !== 0 ||
+            reading.humidity !== 0 ||
+            reading.nh3 !== 0 ||
+            reading.h2s !== 0);
+
+        if (reading && hasSignal) {
+          gotLive = true;
+          stopSim();
+          setLatest(reading);
+          setStatus("live");
+          setHistory((h) =>
+            h.length && h[h.length - 1].timestamp === reading.timestamp
+              ? h
+              : [...h, reading].slice(-MAX_HISTORY)
+          );
+        } else {
+          // connected but empty / all-zero → simulate while we wait
+          ensureSim("waiting");
+        }
+      },
+      () => {
+        // read error (offline / rules not applied) → keep a usable feed
+        ensureSim("offline");
+      }
+    );
+
+    const offHistory = onValue(historyRef, (snap) => {
+      if (!gotLive) return; // ignore history until we have a real live signal
+      const val = snap.val();
+      if (!val) return;
+      const rows = Object.values(val)
+        .map((r) => normalize(r, Date.now()))
+        .filter((r): r is SensorReading => r !== null)
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .slice(-MAX_HISTORY);
+      if (rows.length) setHistory(rows);
+    });
+
+    return () => {
+      stopSim();
+      offLatest();
+      offHistory();
+    };
+  }, []);
+
+  return { latest, history, status };
+}

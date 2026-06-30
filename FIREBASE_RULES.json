@@ -1,0 +1,34 @@
+{
+  "comment": "MEAT GUARD — Firebase Realtime Database security rules. Paste into Firebase Console > Realtime Database > Rules.",
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "meat": {
+      "latest": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['temperature','humidity','nh3','h2s'])",
+        "temperature": { ".validate": "newData.isNumber() && newData.val() >= -40 && newData.val() <= 80" },
+        "humidity":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+        "nh3":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+        "h2s":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+        "timestamp":   { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      },
+
+      "history": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$pushId": {
+          ".validate": "newData.hasChildren(['temperature','humidity','nh3','h2s'])",
+          "temperature": { ".validate": "newData.isNumber()" },
+          "humidity":    { ".validate": "newData.isNumber()" },
+          "nh3":         { ".validate": "newData.isNumber()" },
+          "h2s":         { ".validate": "newData.isNumber()" },
+          "timestamp":   { ".validate": "newData.isNumber()" }
+        }
+      }
+    }
+  }
+}

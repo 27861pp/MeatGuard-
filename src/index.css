@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* MEAT GUARD runs dark-first, but light tokens are kept for completeness */
+    --background: 240 20% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 16% 7%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 18% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 10% 14%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 10% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 142 71% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 12% 18%;
+    --input: 240 12% 18%;
+    --ring: 0 84% 60%;
+
+    /* Brand */
+    --meat: 0 84% 60%;
+    --meat-glow: 6 90% 55%;
+    --safe: 142 71% 45%;
+    --safe-glow: 142 76% 50%;
+    --warn: 38 92% 50%;
+
+    --radius: 0.85rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Layered ambient glow backdrop */
+    background-image:
+      radial-gradient(60rem 60rem at 12% -10%, hsl(0 84% 60% / 0.10), transparent 60%),
+      radial-gradient(55rem 55rem at 95% 0%, hsl(142 71% 45% / 0.09), transparent 55%),
+      radial-gradient(50rem 50rem at 50% 120%, hsl(0 84% 50% / 0.06), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--meat) / 0.35);
+  }
+}
+
+@layer components {
+  /* Frosted glass surface used across cards, navbar, modals */
+  .glass {
+    @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.06) inset,
+      0 20px 50px -20px hsl(240 50% 2% / 0.8);
+  }
+
+  .glass-strong {
+    @apply border border-white/10 bg-white/[0.07] backdrop-blur-2xl;
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.08) inset,
+      0 30px 60px -25px hsl(240 50% 2% / 0.9);
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-meat via-rose-400 to-safe bg-clip-text text-transparent;
+  }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(hsl(0 0% 100% / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 100% / 0.04) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Premium thin scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(240 16% 7%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(240 10% 22%);
+    border-radius: 999px;
+    border: 2px solid hsl(240 16% 7%);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(0 60% 45%);
+  }
+
+  .shadow-glow-meat {
+    box-shadow: 0 0 0 1px hsl(var(--meat) / 0.3), 0 0 40px -6px hsl(var(--meat) / 0.55);
+  }
+  .shadow-glow-safe {
+    box-shadow: 0 0 0 1px hsl(var(--safe) / 0.3), 0 0 40px -6px hsl(var(--safe) / 0.55);
+  }
+}

@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -19,14 +19,14 @@ const APP_ROUTES = ["/home", "/dashboard", "/recipes"];
 
 /**
  * Root: logged-in users land on the app home (so re-opening the app skips the
- * marketing page). A hash link (e.g. /#safety) still shows the landing so the
- * knowledge sections stay reachable from the app.
+ * marketing page). A "?section=..." link still shows the landing so the
+ * knowledge sections stay reachable from the app shortcuts.
  */
 function RootRoute() {
   const { user, loading } = useAuth();
-  const location = useLocation();
+  const [params] = useSearchParams();
   if (loading) return <PageLoader />;
-  if (user && !location.hash) return <Navigate to="/home" replace />;
+  if (user && !params.get("section")) return <Navigate to="/home" replace />;
   return <Home />;
 }
 

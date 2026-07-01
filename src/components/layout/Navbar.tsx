@@ -35,11 +35,13 @@ export function Navbar() {
 
   const handleNav = (href: string) => {
     setOpen(false);
+    const id = href.replace("#", "");
     if (!onHome) {
-      navigate("/" + href);
+      // Not on the landing → route there with a section marker (HashRouter owns the hash).
+      navigate(`/?section=${id}`);
       return;
     }
-    document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (

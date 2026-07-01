@@ -143,33 +143,49 @@ src/
 
 ## 🚀 Deployment
 
-> โปรเจกต์นี้เป็น Vite SPA (client-side routing) — ทุกช่องทางตั้ง **SPA fallback → `/index.html`**
-> ไว้ให้แล้ว ดังนั้นเส้นทางอย่าง `/home`, `/dashboard`, `/recipes` จะทำงานถูกต้อง
+> โปรเจกต์ใช้ **HashRouter** → route ทั้งหมด (`#/home`, `#/dashboard`, `#/recipes`)
+> ทำงานบน static host ได้เลย **ไม่ต้องตั้ง server rewrite** และ refresh/deep-link ไม่ 404
 >
-> ⚠️ **สำคัญ:** ต้องตั้งค่า `VITE_FIREBASE_*` ตอน build ทุกครั้ง มิฉะนั้นเว็บที่ deploy
-> จะรันเป็น **Demo Mode** (ไม่เชื่อม Firebase จริง)
+> **Base path** ตั้งอัตโนมัติ:
+> - `npm run build` (ไม่มี env) → base = **`/MeatGuard-/`** (สำหรับ GitHub Pages)
+> - ตั้ง `VITE_BASE=/` ตอน build → base = **`/`** (สำหรับ Firebase / Vercel / Netlify ที่เสิร์ฟจาก root)
+>
+> ⚠️ ต้องตั้ง `VITE_FIREBASE_*` ตอน build มิฉะนั้นเว็บจะรันเป็น **Demo Mode** (ไม่เชื่อม Firebase จริง)
 
-### ตัวเลือก A — Firebase Hosting (แนะนำ, ใช้ระบบเดียวกับ Auth/DB)
+### ตัวเลือก A — GitHub Pages (อัตโนมัติจาก repo นี้) ⭐
+
+1. repo → **Settings → Pages → Source = “GitHub Actions”**
+2. (ถ้าต้องการ Firebase จริง) เพิ่ม **Repository Secrets** `VITE_FIREBASE_*` ทั้ง 7 ตัว
+   ที่ Settings → Secrets and variables → Actions
+3. push ขึ้น `main` — workflow [`deploy-pages.yml`](.github/workflows/deploy-pages.yml)
+   จะ build (base `/MeatGuard-/`) แล้ว publish ให้อัตโนมัติ
+4. เว็บจะขึ้นที่ **https://27861pp.github.io/MeatGuard-/**
+
+> เดิมหน้าเว็บว่างเปล่าเพราะ build ใช้ base `/` แต่ GitHub Pages เสิร์ฟที่ `/MeatGuard-/`
+> ทำให้โหลดไฟล์ JS ไม่เจอ — ตอนนี้แก้ให้ base ถูกต้องแล้ว
+
+### ตัวเลือก B — Firebase Hosting (ใช้ระบบเดียวกับ Auth/DB)
 
 ```bash
 npm install -g firebase-tools
 firebase login
-npm run build          # ใช้ค่าจาก .env ในเครื่อง
-firebase deploy        # ใช้ firebase.json + .firebaserc (project: meat-83f83)
+VITE_BASE=/ npm run build   # base = "/" (Firebase เสิร์ฟจาก root) + ใช้ค่าจาก .env
+firebase deploy             # ใช้ firebase.json + .firebaserc (project: meat-83f83)
 ```
 
-### ตัวเลือก B — Vercel (เชื่อมจาก GitHub, ไม่ต้องใช้ CLI)
+### ตัวเลือก C — Vercel (เชื่อมจาก GitHub, ไม่ต้องใช้ CLI)
 
 1. ไปที่ [vercel.com](https://vercel.com) → **Add New Project** → import repo `27861pp/MeatGuard-`
-2. Vercel ตรวจ `vercel.json` ให้อัตโนมัติ (framework: vite)
+2. Vercel ตรวจ `vercel.json` ให้อัตโนมัติ (ตั้ง `VITE_BASE=/` ให้แล้ว)
 3. เพิ่ม **Environment Variables** ทั้ง 7 ตัว (`VITE_FIREBASE_*`) จากไฟล์ `.env`
 4. กด **Deploy**
 
-### ตัวเลือก C — Netlify
+### ตัวเลือก D — Netlify
 
-เชื่อม repo แล้ว Netlify จะอ่าน `netlify.toml` เอง — เพิ่ม env `VITE_FIREBASE_*` ในหน้า Site settings
+เชื่อม repo แล้ว Netlify จะอ่าน `netlify.toml` เอง (ตั้ง `VITE_BASE=/` ให้แล้ว) —
+เพิ่ม env `VITE_FIREBASE_*` ในหน้า Site settings
 
-### ตัวเลือก D — Auto-deploy ทุกครั้งที่ push (GitHub Actions → Firebase)
+### ตัวเลือก E — Auto-deploy ทุกครั้งที่ push (GitHub Actions → Firebase)
 
 มี workflow ที่ [`.github/workflows/firebase-hosting.yml`](.github/workflows/firebase-hosting.yml) แล้ว
 ตั้งค่า **Repository Secrets** (Settings → Secrets and variables → Actions):
@@ -185,7 +201,8 @@ firebase deploy        # ใช้ firebase.json + .firebaserc (project: meat-83
 ### หลัง deploy — เพิ่ม Authorized Domain
 
 Firebase Console → **Authentication → Settings → Authorized domains** →
-เพิ่มโดเมนที่ deploy (เช่น `meat-83f83.web.app`, `xxx.vercel.app`) เพื่อให้ Google Sign-in ทำงาน
+เพิ่มโดเมนที่ deploy (เช่น `27861pp.github.io`, `meat-83f83.web.app`, `xxx.vercel.app`)
+เพื่อให้ Google Sign-in ทำงาน
 
 ---
 

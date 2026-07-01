@@ -27,10 +27,10 @@ export function Footer() {
           <div>
             <h4 className="mb-3 text-sm font-semibold">เมนู</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#how" className="hover:text-foreground">หลักการทำงาน</a></li>
-              <li><a href="#safety" className="hover:text-foreground">ความปลอดภัยด้านอาหาร</a></li>
-              <li><a href="#consumption" className="hover:text-foreground">คำแนะนำการบริโภค</a></li>
-              <li><a href="#storage" className="hover:text-foreground">การเก็บรักษา</a></li>
+              <li><Link to="/?section=how" className="hover:text-foreground">หลักการทำงาน</Link></li>
+              <li><Link to="/?section=safety" className="hover:text-foreground">ความปลอดภัยด้านอาหาร</Link></li>
+              <li><Link to="/?section=consumption" className="hover:text-foreground">คำแนะนำการบริโภค</Link></li>
+              <li><Link to="/?section=storage" className="hover:text-foreground">การเก็บรักษา</Link></li>
             </ul>
           </div>
 
@@ -40,7 +40,7 @@ export function Footer() {
               <li><Link to="/dashboard" className="hover:text-foreground">Monitor Dashboard</Link></li>
               <li><Link to="/login" className="hover:text-foreground">เข้าสู่ระบบ</Link></li>
               <li className="flex items-center gap-2 pt-1">
-                <a href="#" className="grid h-8 w-8 place-items-center rounded-lg glass hover:text-foreground" aria-label="GitHub"><Github className="h-4 w-4" /></a>
+                <a href="https://github.com/27861pp/MeatGuard-" target="_blank" rel="noopener noreferrer" className="grid h-8 w-8 place-items-center rounded-lg glass hover:text-foreground" aria-label="GitHub"><Github className="h-4 w-4" /></a>
                 <a href="mailto:hello@meatguard.io" className="grid h-8 w-8 place-items-center rounded-lg glass hover:text-foreground" aria-label="Email"><Mail className="h-4 w-4" /></a>
               </li>
             </ul>

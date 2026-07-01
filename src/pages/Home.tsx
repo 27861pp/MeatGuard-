@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Hero } from "@/components/sections/Hero";
 import { HowItWorks } from "@/components/sections/HowItWorks";
@@ -10,17 +10,18 @@ import { StorageGuide } from "@/components/sections/StorageGuide";
 import { CallToAction } from "@/components/sections/CallToAction";
 
 export default function Home() {
-  const location = useLocation();
+  const [params] = useSearchParams();
+  const section = params.get("section");
 
-  // Smooth-scroll to a section when arriving via a hash link (e.g. /#safety).
+  // Smooth-scroll to a section when arriving via "?section=safety" (used by
+  // the in-app shortcuts, since HashRouter owns the URL hash).
   useEffect(() => {
-    if (!location.hash) return;
-    const id = location.hash;
+    if (!section) return;
     const t = window.setTimeout(() => {
-      document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById(section)?.scrollIntoView({ behavior: "smooth" });
     }, 200);
     return () => window.clearTimeout(t);
-  }, [location.hash]);
+  }, [section]);
 
   return (
     <motion.div

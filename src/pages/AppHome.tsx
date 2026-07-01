@@ -19,6 +19,7 @@ import {
   Wind,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { InstallApp } from "@/components/InstallApp";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClock } from "@/hooks/useClock";
 import { useBattery } from "@/hooks/useBattery";
@@ -34,9 +35,9 @@ const VERDICT_THEME: Record<QualityLevel, { text: string; ring: string; chip: st
 
 const SHORTCUTS = [
   { label: "เมนูแนะนำ", sub: "ไก่ · หมู · วัว", icon: Utensils, to: "/recipes", accent: "text-amber-400" },
-  { label: "ความปลอดภัย", sub: "Food Safety", icon: BookOpen, to: "/#safety", accent: "text-violet-400" },
-  { label: "คำแนะนำบริโภค", sub: "Consumption", icon: Flame, to: "/#consumption", accent: "text-rose-400" },
-  { label: "การเก็บรักษา", sub: "Storage", icon: Refrigerator, to: "/#storage", accent: "text-sky-400" },
+  { label: "ความปลอดภัย", sub: "Food Safety", icon: BookOpen, to: "/?section=safety", accent: "text-violet-400" },
+  { label: "คำแนะนำบริโภค", sub: "Consumption", icon: Flame, to: "/?section=consumption", accent: "text-rose-400" },
+  { label: "การเก็บรักษา", sub: "Storage", icon: Refrigerator, to: "/?section=storage", accent: "text-sky-400" },
 ] as const;
 
 export default function AppHome() {
@@ -120,6 +121,9 @@ export default function AppHome() {
             </h1>
           </div>
         </motion.div>
+
+        {/* ── install-as-app CTA (hidden once installed) ── */}
+        <InstallApp />
 
         {/* ── big clock + verdict hero ── */}
         <motion.div

@@ -19,6 +19,8 @@ export interface SensorReading {
   h2s: number;
   /** epoch ms */
   timestamp: number;
+  /** optional status string reported by the device (e.g. "FRESH") */
+  status?: string;
 }
 
 export interface QualityVerdict {
@@ -37,8 +39,10 @@ export interface QualityVerdict {
  * spoilage indicators for chilled meat; calibrate against your own sensor +
  * meat type before production use.
  */
+// Aligned with the ESP32 firmware (NH3_FRESH=10, NH3_WARNING=25) so the app's
+// verdict matches the device's own status.
 export const THRESHOLDS = {
-  nh3: { fresh: 5, warning: 12 }, // ppm
+  nh3: { fresh: 10, warning: 25 }, // ppm
   h2s: { fresh: 0.5, warning: 1.5 }, // ppm
   temperature: { fresh: 4, warning: 10 }, // °C (cold-chain)
 } as const;
@@ -76,14 +80,20 @@ export function analyzeReading(r: SensorReading): QualityVerdict {
     THRESHOLDS.temperature.warning
   );
 
-  // Gases weighted highest, temperature as supporting signal.
-  const score = Math.round(nh3Score * 0.42 + h2sScore * 0.42 + tempScore * 0.16);
+  // Gases dominate the score; temperature is a lighter supporting signal
+  // (the device itself grades on gas only).
+  const score = Math.round(nh3Score * 0.5 + h2sScore * 0.4 + tempScore * 0.1);
 
+  // Prefer the device's own status when it sends one, so the dashboard shows
+  // exactly what the ESP32 decided; otherwise classify from the thresholds.
+  const fromDevice = deviceLevel(r.status);
   let level: QualityLevel;
-  if (
+  if (fromDevice) {
+    level = fromDevice;
+  } else if (
     r.nh3 <= THRESHOLDS.nh3.fresh &&
     r.h2s <= THRESHOLDS.h2s.fresh &&
-    score >= 75
+    score >= 70
   ) {
     level = "fresh";
   } else if (r.nh3 >= THRESHOLDS.nh3.warning || r.h2s >= THRESHOLDS.h2s.warning || score < 45) {
@@ -93,6 +103,16 @@ export function analyzeReading(r: SensorReading): QualityVerdict {
   }
 
   return { ...VERDICT_META[level], level, score };
+}
+
+/** Map a device status string (e.g. "FRESH"/"WARNING"/"SPOILED") to a level. */
+function deviceLevel(status?: string): QualityLevel | null {
+  if (!status) return null;
+  const s = status.trim().toUpperCase();
+  if (s === "FRESH") return "fresh";
+  if (s === "WARNING") return "warning";
+  if (s === "SPOILED") return "spoiled";
+  return null;
 }
 
 const VERDICT_META: Record<QualityLevel, Omit<QualityVerdict, "level" | "score">> = {

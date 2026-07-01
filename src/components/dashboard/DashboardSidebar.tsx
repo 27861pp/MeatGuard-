@@ -15,11 +15,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { ConnectionStatus } from "@/hooks/useSensorData";
 import { cn } from "@/lib/utils";
 
+// `target` is the element id to scroll to. We must NOT use <a href="#..">
+// here because HashRouter owns the URL hash (it would 404).
 const NAV = [
-  { icon: Gauge, label: "ภาพรวม", href: "#overview", active: true },
-  { icon: Thermometer, label: "เซ็นเซอร์", href: "#sensors" },
-  { icon: LineChart, label: "กราฟเรียลไทม์", href: "#charts" },
-  { icon: Activity, label: "ผลวิเคราะห์", href: "#analysis" },
+  { icon: Gauge, label: "ภาพรวม", target: "overview", active: true },
+  { icon: Thermometer, label: "เซ็นเซอร์", target: "sensors" },
+  { icon: LineChart, label: "กราฟเรียลไทม์", target: "charts" },
+  { icon: Activity, label: "ผลวิเคราะห์", target: "analysis" },
 ];
 
 const STATUS_META: Record<ConnectionStatus, { label: string; cls: string }> = {
@@ -63,12 +65,16 @@ export function DashboardSidebar({ status, onNavigate }: Props) {
           Monitor
         </p>
         {NAV.map((n) => (
-          <a
-            key={n.href}
-            href={n.href}
-            onClick={onNavigate}
+          <button
+            key={n.target}
+            onClick={() => {
+              document
+                .getElementById(n.target)
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              onNavigate?.();
+            }}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
               n.active
                 ? "border border-white/10 bg-white/[0.06] text-foreground"
                 : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
@@ -76,7 +82,7 @@ export function DashboardSidebar({ status, onNavigate }: Props) {
           >
             <n.icon className="h-4 w-4" />
             {n.label}
-          </a>
+          </button>
         ))}
 
         <p className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">

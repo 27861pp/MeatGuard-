@@ -2,12 +2,14 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Cpu, Droplets, Flame, Menu, Thermometer, Wind, X } from "lucide-react";
 import { useSensorData } from "@/hooks/useSensorData";
+import { useClock } from "@/hooks/useClock";
 import {
   analyzeReading,
   humidityStatus,
   metricStatus,
   SENSOR_RANGE,
 } from "@/lib/analysis";
+import { BatteryPill } from "@/components/BatteryPill";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { SensorCard } from "@/components/dashboard/SensorCard";
@@ -23,6 +25,7 @@ const frac = (v: number, key: keyof typeof SENSOR_RANGE) => {
 export default function Dashboard() {
   const { latest, history, status } = useSensorData();
   const [drawer, setDrawer] = useState(false);
+  const clock = useClock();
 
   const verdict = useMemo(() => (latest ? analyzeReading(latest) : null), [latest]);
 
@@ -90,6 +93,14 @@ export default function Dashboard() {
                   )}
                 </p>
               </div>
+            </div>
+
+            {/* live clock + device battery */}
+            <div className="flex items-center gap-2">
+              <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold tabular-nums text-muted-foreground sm:inline">
+                {clock.time}
+              </span>
+              <BatteryPill />
             </div>
           </header>
 

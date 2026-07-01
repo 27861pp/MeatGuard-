@@ -45,12 +45,14 @@ function normalize(raw: unknown, fallbackTs: number): SensorReading | null {
     for (const k of keys) if (o[k] !== undefined && o[k] !== null) return o[k];
     return undefined;
   };
+  const statusRaw = pick("status", "Status", "verdict");
   return {
     temperature: num(pick("temperature", "temp", "Temperature", "TEMP", "t")),
     humidity: num(pick("humidity", "hum", "Humidity", "HUM", "h")),
     nh3: num(pick("nh3", "NH3", "ammonia", "Ammonia")),
     h2s: num(pick("h2s", "H2S", "sulfide", "Sulfide")),
     timestamp: num(pick("timestamp", "time", "ts"), fallbackTs),
+    status: typeof statusRaw === "string" ? statusRaw : undefined,
   };
 }
 

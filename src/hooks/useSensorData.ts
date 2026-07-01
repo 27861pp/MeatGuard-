@@ -132,11 +132,9 @@ export function useSensorData(): SensorState {
           stopSim();
           setLatest(reading);
           setStatus("live");
-          setHistory((h) =>
-            h.length && h[h.length - 1].timestamp === reading.timestamp
-              ? h
-              : [...h, reading].slice(-MAX_HISTORY)
-          );
+          // The chart is driven by meat/history (with reconstructed wall-clock
+          // times). Keep at least one point until that snapshot arrives.
+          setHistory((h) => (h.length ? h : [reading]));
         } else {
           // connected but empty / all-zero → simulate while we wait
           ensureSim("waiting");
@@ -151,13 +149,31 @@ export function useSensorData(): SensorState {
     const offHistory = onValue(historyRef, (snap) => {
       if (!gotLive) return; // ignore history until we have a real live signal
       const val = snap.val();
-      if (!val) return;
-      const rows = Object.values(val)
-        .map((r) => normalize(r, Date.now()))
-        .filter((r): r is SensorReading => r !== null)
-        .sort((a, b) => a.timestamp - b.timestamp)
+      if (!val || typeof val !== "object") return;
+
+      // Device history has a `minute` counter but no wall-clock timestamp, so
+      // reconstruct real times: newest point = now, each earlier one 1 min back.
+      const parsed = Object.entries(val as Record<string, unknown>)
+        .map(([key, raw]) => {
+          const reading = normalize(raw, Date.now());
+          if (!reading) return null;
+          const o = raw as Record<string, unknown>;
+          const minute =
+            typeof o.minute === "number" ? o.minute : parseInt(key, 10);
+          return { reading, minute: Number.isFinite(minute) ? minute : 0 };
+        })
+        .filter((x): x is { reading: SensorReading; minute: number } => x !== null)
+        .sort((a, b) => a.minute - b.minute)
         .slice(-MAX_HISTORY);
-      if (rows.length) setHistory(rows);
+
+      if (!parsed.length) return;
+      const maxMinute = parsed[parsed.length - 1].minute;
+      const now = Date.now();
+      const rows = parsed.map((x) => ({
+        ...x.reading,
+        timestamp: now - (maxMinute - x.minute) * 60_000,
+      }));
+      setHistory(rows);
     });
 
     return () => {

@@ -158,3 +158,86 @@ export function humidityStatus(value: number): MetricStatus {
   if (value > 88 || value < 30) return "bad";
   return "warn";
 }
+
+/* ────────────────────────────────────────────────────────────────────────
+ * Trend / outlook — where is the freshness heading?
+ * ──────────────────────────────────────────────────────────────────────── */
+
+export type TrendDirection = "improving" | "stable" | "worsening";
+
+export interface TrendResult {
+  direction: TrendDirection;
+  /** NH₃ change per minute (ppm), sign = direction */
+  ratePerMin: number;
+  /** projected outlook */
+  outlook: QualityLevel;
+  label: string; // สด / ควรระวัง / เน่า
+  headline: string; // short Thai description of the trend
+  advice: string;
+}
+
+/** Least-squares slope of y over its index (points assumed ~evenly spaced). */
+function slope(ys: number[]): number {
+  const n = ys.length;
+  if (n < 2) return 0;
+  const meanX = (n - 1) / 2;
+  const meanY = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - meanX) * (ys[i] - meanY);
+    den += (i - meanX) ** 2;
+  }
+  return den === 0 ? 0 : num / den;
+}
+
+const TREND_META: Record<QualityLevel, { label: string; advice: string }> = {
+  fresh: { label: "สด", advice: "คุณภาพยังดี ตรวจต่อเนื่องได้ตามปกติ" },
+  warning: {
+    label: "ควรระวัง",
+    advice: "ค่าเริ่มสูงขึ้น ควรรีบนำไปปรุงหรือบริโภคโดยเร็ว",
+  },
+  spoiled: { label: "เน่า", advice: "ไม่แนะนำให้บริโภค เพื่อความปลอดภัยควรทิ้ง" },
+};
+
+/**
+ * Estimate the freshness trend from recent NH₃ history + the current verdict.
+ * Combines "where it is now" (verdict level) with "which way it's moving"
+ * (NH₃ slope) to project สด / ควรระวัง / เน่า.
+ */
+export function analyzeTrend(
+  history: SensorReading[],
+  current: QualityVerdict
+): TrendResult {
+  const pts = history.slice(-8);
+  const ratePerMin = pts.length >= 3 ? slope(pts.map((p) => p.nh3)) : 0;
+
+  const RISE = 0.4; // ppm/min considered a real upward trend
+  const direction: TrendDirection =
+    ratePerMin > RISE ? "worsening" : ratePerMin < -RISE ? "improving" : "stable";
+
+  // Outlook: never better than the current verdict; nudge worse if rising.
+  let outlook: QualityLevel = current.level;
+  if (current.level === "fresh" && direction === "worsening") outlook = "warning";
+  if (current.level === "warning" && direction === "worsening") outlook = "spoiled";
+  if (current.level === "warning" && direction === "improving") outlook = "fresh";
+
+  const arrow =
+    direction === "worsening" ? "กำลังเสื่อมสภาพ" : direction === "improving" ? "กำลังดีขึ้น" : "คงที่";
+  const rateTxt =
+    direction === "stable"
+      ? "NH₃ ทรงตัว"
+      : `NH₃ ${ratePerMin > 0 ? "+" : ""}${ratePerMin.toFixed(2)} ppm/นาที`;
+
+  return {
+    direction,
+    ratePerMin,
+    outlook,
+    label: TREND_META[outlook].label,
+    headline: `${arrow} · ${rateTxt}`,
+    advice:
+      direction === "worsening" && current.level === "fresh"
+        ? "ยังสดอยู่ แต่ก๊าซกำลังเพิ่มขึ้น — ควรเริ่มเฝ้าระวัง"
+        : TREND_META[outlook].advice,
+  };
+}

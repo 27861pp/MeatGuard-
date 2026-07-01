@@ -5,6 +5,7 @@ import { useSensorData } from "@/hooks/useSensorData";
 import { useClock } from "@/hooks/useClock";
 import {
   analyzeReading,
+  analyzeTrend,
   humidityStatus,
   metricStatus,
   SENSOR_RANGE,
@@ -15,6 +16,7 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { SensorCard } from "@/components/dashboard/SensorCard";
 import { RealtimeChart } from "@/components/dashboard/RealtimeChart";
 import { AnalysisResult } from "@/components/dashboard/AnalysisResult";
+import { TrendCard } from "@/components/dashboard/TrendCard";
 import { StatusToast } from "@/components/dashboard/StatusToast";
 
 const frac = (v: number, key: keyof typeof SENSOR_RANGE) => {
@@ -28,6 +30,10 @@ export default function Dashboard() {
   const clock = useClock();
 
   const verdict = useMemo(() => (latest ? analyzeReading(latest) : null), [latest]);
+  const trend = useMemo(
+    () => (verdict && history.length >= 3 ? analyzeTrend(history, verdict) : null),
+    [history, verdict]
+  );
 
   return (
     <div className="relative min-h-screen pt-16 lg:pt-0">
@@ -126,9 +132,10 @@ export default function Dashboard() {
             <DashboardSkeleton />
           ) : (
             <div className="space-y-6">
-              {/* analysis verdict */}
-              <section id="analysis" className="scroll-mt-20">
+              {/* analysis verdict + trend outlook */}
+              <section id="analysis" className="grid scroll-mt-20 gap-5 lg:grid-cols-[1.55fr_1fr]">
                 <AnalysisResult verdict={verdict} />
+                {trend && <TrendCard trend={trend} />}
               </section>
 
               {/* sensor cards */}

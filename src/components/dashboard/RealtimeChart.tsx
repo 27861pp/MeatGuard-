@@ -59,8 +59,8 @@ export function RealtimeChart({
     () =>
       history.map((r) =>
         new Date(r.timestamp).toLocaleTimeString("th-TH", {
+          hour: "2-digit",
           minute: "2-digit",
-          second: "2-digit",
         })
       ),
     [history]

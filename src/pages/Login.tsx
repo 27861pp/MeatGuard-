@@ -23,7 +23,7 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string })?.from ?? "/home";
+  const from = (location.state as { from?: string })?.from ?? "/dashboard";
 
   useEffect(() => {
     if (!loading && user) navigate(from, { replace: true });

@@ -18,15 +18,15 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const APP_ROUTES = ["/home", "/dashboard", "/recipes"];
 
 /**
- * Root: logged-in users land on the app home (so re-opening the app skips the
- * marketing page). A "?section=..." link still shows the landing so the
- * knowledge sections stay reachable from the app shortcuts.
+ * Root: logged-in users go straight to the dashboard (sign in once → monitor).
+ * A "?section=..." link still shows the landing so the knowledge sections stay
+ * reachable from the app shortcuts.
  */
 function RootRoute() {
   const { user, loading } = useAuth();
   const [params] = useSearchParams();
   if (loading) return <PageLoader />;
-  if (user && !params.get("section")) return <Navigate to="/home" replace />;
+  if (user && !params.get("section")) return <Navigate to="/dashboard" replace />;
   return <Home />;
 }
 

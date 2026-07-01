@@ -1,9 +1,13 @@
 /**
  * Firebase bootstrap.
  *
- * If the VITE_FIREBASE_* env vars are present we initialise the real SDK.
- * Otherwise the app transparently switches to DEMO MODE (see useAuth /
- * useSensorData) so the entire product is explorable with zero config.
+ * The config below is the project's *web* configuration. Firebase web keys are
+ * public by design — they ship in every Firebase web app's client bundle and
+ * are safe to commit. Access is controlled by Auth authorized-domains and the
+ * Realtime Database security rules (see FIREBASE_RULES.json), NOT by the key.
+ *
+ * VITE_FIREBASE_* env vars override these defaults when present (e.g. to point
+ * a fork at a different project).
  */
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
@@ -15,14 +19,28 @@ import {
 } from "firebase/auth";
 import { getDatabase, type Database } from "firebase/database";
 
+// Default project: meat-83f83 (baked in so the deployed app connects to real
+// Firebase without any secret setup).
+const DEFAULT_FIREBASE = {
+  apiKey: "AIzaSyA4sLKQy-mrmfcYNsptYo8fCt0H63gDGE4",
+  authDomain: "meat-83f83.firebaseapp.com",
+  projectId: "meat-83f83",
+  storageBucket: "meat-83f83.firebasestorage.app",
+  messagingSenderId: "619234872715",
+  appId: "1:619234872715:web:a9f953a8cb5434ef97338e",
+  databaseURL:
+    "https://meat-83f83-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || DEFAULT_FIREBASE.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || DEFAULT_FIREBASE.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || DEFAULT_FIREBASE.storageBucket,
+  messagingSenderId:
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || DEFAULT_FIREBASE.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || DEFAULT_FIREBASE.appId,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || DEFAULT_FIREBASE.databaseURL,
 };
 
 /** True only when the minimum required keys are configured. */

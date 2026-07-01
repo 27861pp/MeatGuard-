@@ -141,4 +141,52 @@ src/
 
 ---
 
+## 🚀 Deployment
+
+> โปรเจกต์นี้เป็น Vite SPA (client-side routing) — ทุกช่องทางตั้ง **SPA fallback → `/index.html`**
+> ไว้ให้แล้ว ดังนั้นเส้นทางอย่าง `/home`, `/dashboard`, `/recipes` จะทำงานถูกต้อง
+>
+> ⚠️ **สำคัญ:** ต้องตั้งค่า `VITE_FIREBASE_*` ตอน build ทุกครั้ง มิฉะนั้นเว็บที่ deploy
+> จะรันเป็น **Demo Mode** (ไม่เชื่อม Firebase จริง)
+
+### ตัวเลือก A — Firebase Hosting (แนะนำ, ใช้ระบบเดียวกับ Auth/DB)
+
+```bash
+npm install -g firebase-tools
+firebase login
+npm run build          # ใช้ค่าจาก .env ในเครื่อง
+firebase deploy        # ใช้ firebase.json + .firebaserc (project: meat-83f83)
+```
+
+### ตัวเลือก B — Vercel (เชื่อมจาก GitHub, ไม่ต้องใช้ CLI)
+
+1. ไปที่ [vercel.com](https://vercel.com) → **Add New Project** → import repo `27861pp/MeatGuard-`
+2. Vercel ตรวจ `vercel.json` ให้อัตโนมัติ (framework: vite)
+3. เพิ่ม **Environment Variables** ทั้ง 7 ตัว (`VITE_FIREBASE_*`) จากไฟล์ `.env`
+4. กด **Deploy**
+
+### ตัวเลือก C — Netlify
+
+เชื่อม repo แล้ว Netlify จะอ่าน `netlify.toml` เอง — เพิ่ม env `VITE_FIREBASE_*` ในหน้า Site settings
+
+### ตัวเลือก D — Auto-deploy ทุกครั้งที่ push (GitHub Actions → Firebase)
+
+มี workflow ที่ [`.github/workflows/firebase-hosting.yml`](.github/workflows/firebase-hosting.yml) แล้ว
+ตั้งค่า **Repository Secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | ค่า |
+|--------|-----|
+| `FIREBASE_SERVICE_ACCOUNT` | JSON ของ Service Account (Firebase Console → Project Settings → Service accounts → Generate new private key) |
+| `VITE_FIREBASE_API_KEY` … `VITE_FIREBASE_DATABASE_URL` | ค่าเดียวกับใน `.env` (7 ตัว) |
+
+หลังตั้งค่าครบ ทุกครั้งที่ push ขึ้น `main` ระบบจะ build + deploy ไป Firebase Hosting อัตโนมัติ
+(ก่อนตั้ง secret workflow จะ build อย่างเดียวและผ่านเป็นสีเขียว ไม่ deploy)
+
+### หลัง deploy — เพิ่ม Authorized Domain
+
+Firebase Console → **Authentication → Settings → Authorized domains** →
+เพิ่มโดเมนที่ deploy (เช่น `meat-83f83.web.app`, `xxx.vercel.app`) เพื่อให้ Google Sign-in ทำงาน
+
+---
+
 © MEAT GUARD — Smart Food Safety System

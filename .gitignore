@@ -16,6 +16,13 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.real
+
+# Deploy tooling caches
+.firebase/
+.vercel/
+.netlify/
+firebase-debug.log*
 
 # Editor
 .vscode/*

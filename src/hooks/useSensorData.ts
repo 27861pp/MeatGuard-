@@ -26,7 +26,13 @@ interface SensorState {
   status: ConnectionStatus;
 }
 
-/** Coerce arbitrary Firebase payloads into a clean SensorReading. */
+/**
+ * Coerce arbitrary Firebase payloads into a clean SensorReading.
+ *
+ * Field names are matched leniently so the app works with whatever the
+ * ESP32 / device writes — e.g. the real database uses `temp` (not
+ * `temperature`). We accept common aliases for every metric.
+ */
 function normalize(raw: unknown, fallbackTs: number): SensorReading | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
@@ -34,12 +40,17 @@ function normalize(raw: unknown, fallbackTs: number): SensorReading | null {
     const n = typeof v === "string" ? parseFloat(v) : (v as number);
     return Number.isFinite(n) ? n : d;
   };
+  // first defined alias wins
+  const pick = (...keys: string[]) => {
+    for (const k of keys) if (o[k] !== undefined && o[k] !== null) return o[k];
+    return undefined;
+  };
   return {
-    temperature: num(o.temperature),
-    humidity: num(o.humidity),
-    nh3: num(o.nh3),
-    h2s: num(o.h2s),
-    timestamp: num(o.timestamp, fallbackTs),
+    temperature: num(pick("temperature", "temp", "Temperature", "TEMP", "t")),
+    humidity: num(pick("humidity", "hum", "Humidity", "HUM", "h")),
+    nh3: num(pick("nh3", "NH3", "ammonia", "Ammonia")),
+    h2s: num(pick("h2s", "H2S", "sulfide", "Sulfide")),
+    timestamp: num(pick("timestamp", "time", "ts"), fallbackTs),
   };
 }
 
@@ -112,7 +123,9 @@ export function useSensorData(): SensorState {
             reading.nh3 !== 0 ||
             reading.h2s !== 0);
 
-        if (reading && hasSignal) {
+        // Accept the first non-zero reading as "live"; once live, keep taking
+        // every subsequent reading from the device (even a momentary 0).
+        if (reading && (hasSignal || gotLive)) {
           gotLive = true;
           stopSim();
           setLatest(reading);

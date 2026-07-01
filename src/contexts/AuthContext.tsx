@@ -8,13 +8,23 @@ import {
   type ReactNode,
 } from "react";
 import {
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from "firebase/auth";
 import { auth, DEMO_MODE, googleProvider } from "@/lib/firebase";
+
+/** Popups are unreliable on mobile/in-app browsers — prefer the redirect flow there. */
+function isMobileBrowser() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(
+    navigator.userAgent
+  );
+}
 
 export interface AppUser {
   uid: string;
@@ -65,6 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    // Complete any pending redirect-based sign-in (mobile flow).
+    getRedirectResult(auth).catch((e) => {
+      // eslint-disable-next-line no-console
+      console.error("[MEAT GUARD] redirect result error", e);
+    });
+
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u ? toAppUser(u) : null);
       setLoading(false);
@@ -81,6 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(DEMO_USER);
       return;
     }
+
+    // On mobile, go straight to the redirect flow — popups are blocked or
+    // give a poor UX in most mobile / in-app browsers.
+    if (isMobileBrowser()) {
+      await signInWithRedirect(auth, googleProvider);
+      return;
+    }
+
     try {
       const result = await signInWithPopup(auth, googleProvider);
       GoogleAuthProvider.credentialFromResult(result);
@@ -88,6 +112,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const code = (e as { code?: string }).code ?? "";
       if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
         return; // user dismissed — not a real error
+      }
+      // Popup was blocked or unsupported → fall back to a full-page redirect.
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/operation-not-supported-in-this-environment"
+      ) {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectErr) {
+          // eslint-disable-next-line no-console
+          console.error("[MEAT GUARD] redirect sign-in error", redirectErr);
+        }
       }
       setError("เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       // eslint-disable-next-line no-console

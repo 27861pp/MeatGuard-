@@ -23,7 +23,7 @@ import { InstallApp } from "@/components/InstallApp";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClock } from "@/hooks/useClock";
 import { useBattery } from "@/hooks/useBattery";
-import { useSensorData } from "@/hooks/useSensorData";
+import { useLiveData } from "@/contexts/LiveDataContext";
 import { analyzeReading, type QualityLevel } from "@/lib/analysis";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +45,7 @@ export default function AppHome() {
   const navigate = useNavigate();
   const { hm, seconds, date } = useClock();
   const battery = useBattery();
-  const { latest, status } = useSensorData();
+  const { latest, status } = useLiveData();
 
   const verdict = useMemo(() => (latest ? analyzeReading(latest) : null), [latest]);
   const firstName = (user?.displayName || user?.email || "ผู้ใช้งาน").split(" ")[0];

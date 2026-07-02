@@ -1,32 +1,22 @@
 {
-  "comment": "MEAT GUARD — Firebase Realtime Database security rules. Paste into Firebase Console > Realtime Database > Rules.",
+  "comment": "MEAT GUARD — Firebase Realtime Database security rules. Paste the `rules` object into Firebase Console > Realtime Database > Rules. Nodes: meat/live (fast ~2s feed), meat/latest (1-min snapshot), meat/history (1-min log). The ESP32 signs in with its email/password user, the web app with Google — both satisfy auth != null.",
   "rules": {
     ".read": false,
     ".write": false,
 
     "meat": {
-      "latest": {
-        ".read": "auth != null",
-        ".write": "auth != null",
-        ".validate": "newData.hasChildren(['temperature','humidity','nh3','h2s'])",
-        "temperature": { ".validate": "newData.isNumber() && newData.val() >= -40 && newData.val() <= 80" },
-        "humidity":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
-        "nh3":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
-        "h2s":         { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
-        "timestamp":   { ".validate": "newData.isNumber()" },
-        "$other": { ".validate": false }
-      },
+      ".read": "auth != null",
+      ".write": "auth != null",
 
+      "live": {
+        ".validate": "newData.hasChildren(['temp','humidity','nh3','h2s'])"
+      },
+      "latest": {
+        ".validate": "newData.hasChildren(['temp','humidity','nh3','h2s'])"
+      },
       "history": {
-        ".read": "auth != null",
-        ".write": "auth != null",
-        "$pushId": {
-          ".validate": "newData.hasChildren(['temperature','humidity','nh3','h2s'])",
-          "temperature": { ".validate": "newData.isNumber()" },
-          "humidity":    { ".validate": "newData.isNumber()" },
-          "nh3":         { ".validate": "newData.isNumber()" },
-          "h2s":         { ".validate": "newData.isNumber()" },
-          "timestamp":   { ".validate": "newData.isNumber()" }
+        "$entry": {
+          ".validate": "newData.hasChildren(['temp','humidity','nh3','h2s'])"
         }
       }
     }

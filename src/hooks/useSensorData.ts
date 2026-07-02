@@ -4,8 +4,9 @@ import { db } from "@/lib/firebase";
 import type { SensorReading } from "@/lib/analysis";
 
 const MAX_HISTORY = 30;
-const STALE_MS = 90_000; // no fresh reading within 90s → board is offline
-const CONNECT_TIMEOUT_MS = 8_000; // no data at all after this → offline
+const STALE_SLOW_MS = 90_000; // firmware sending 1/min → offline after 90s
+const STALE_FAST_MS = 25_000; // firmware sending meat/live (~2s) → offline after 25s
+const CONNECT_TIMEOUT_MS = 8_000;
 const MINUTE_MS = 60_000;
 
 /**
@@ -49,7 +50,7 @@ function normalize(raw: unknown, fallbackTs: number): SensorReading | null {
     humidity: num(pick("humidity", "hum", "Humidity", "HUM", "h")),
     nh3: num(pick("nh3", "NH3", "ammonia", "Ammonia")),
     h2s: num(pick("h2s", "H2S", "sulfide", "Sulfide")),
-    timestamp: num(pick("timestamp", "time", "ts"), fallbackTs),
+    timestamp: num(pick("timestamp", "time"), fallbackTs),
     status: asStr(statusRaw),
     checks: {
       nh3: asStr(pick("chk135", "chkNh3", "nh3Check")),
@@ -60,44 +61,81 @@ function normalize(raw: unknown, fallbackTs: number): SensorReading | null {
 }
 
 /**
- * Subscribes to `meat/latest` (+ `meat/history`) in Firebase and surfaces the
- * board's live status. There is no demo fallback — when the ESP32 isn't
- * sending, the dashboard shows an OFFLINE state rather than fake data.
+ * Subscribes to the board's Firebase nodes:
+ *   meat/live    — fast feed (~2s) for the second-by-second chart (new firmware)
+ *   meat/latest  — 1-minute snapshot (also the fallback when meat/live absent)
+ *   meat/history — 1-minute log for the minute charts / 5-min verdict
+ *
+ * No demo fallback — when the ESP32 isn't sending, status becomes "offline".
  */
-export function useSensorData(): SensorState {
+export function useSensorData(enabled = true): SensorState {
   const [latest, setLatest] = useState<SensorReading | null>(null);
   const [history, setHistory] = useState<SensorReading[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [lastUpdate, setLastUpdate] = useState(0);
   const lastRef = useRef(0);
+  const liveNodeRef = useRef(0); // last time meat/live delivered (0 = never)
 
   useEffect(() => {
+    if (!enabled) {
+      setLatest(null);
+      setHistory([]);
+      setStatus("connecting");
+      setLastUpdate(0);
+      lastRef.current = 0;
+      liveNodeRef.current = 0;
+      return;
+    }
     if (!db) {
       setStatus("offline");
       return;
     }
 
-    const latestRef = ref(db, "meat/latest");
-    const historyRef = ref(db, "meat/history");
+    const markFresh = (reading: SensorReading) => {
+      const now = Date.now();
+      lastRef.current = now;
+      setLastUpdate(now);
+      setLatest(reading);
+      setStatus("live");
+    };
 
-    const offLatest = onValue(
-      latestRef,
+    // ── fast feed (new firmware) ─────────────────────────────────────
+    const offLive = onValue(
+      ref(db, "meat/live"),
       (snap) => {
         const reading = snap.exists() ? normalize(snap.val(), Date.now()) : null;
         if (reading) {
-          const now = Date.now();
-          lastRef.current = now;
-          setLastUpdate(now);
-          setLatest(reading);
-          setStatus("live");
-        } else {
-          setStatus("offline"); // node empty → board has never sent data
+          liveNodeRef.current = Date.now();
+          markFresh(reading);
         }
       },
-      () => setStatus("offline") // permission / network error
+      () => {
+        /* node may not exist yet on old firmware — ignore */
+      }
     );
 
-    const offHistory = onValue(historyRef, (snap) => {
+    // ── 1-minute snapshot (fallback + heartbeat on old firmware) ─────
+    const offLatest = onValue(
+      ref(db, "meat/latest"),
+      (snap) => {
+        const reading = snap.exists() ? normalize(snap.val(), Date.now()) : null;
+        if (!reading) {
+          if (!lastRef.current) setStatus("offline"); // never any data
+          return;
+        }
+        // If the fast feed is flowing, it owns `latest`.
+        if (Date.now() - liveNodeRef.current < 15_000) {
+          lastRef.current = Date.now();
+          setLastUpdate(lastRef.current);
+          return;
+        }
+        markFresh(reading);
+      },
+      () => setStatus("offline")
+    );
+
+    // ── minute history for charts / verdict ──────────────────────────
+    const offHistory = onValue(ref(db, "meat/history"), (snap) => {
       const val = snap.val();
       if (!val || typeof val !== "object") return;
 
@@ -127,11 +165,11 @@ export function useSensorData(): SensorState {
       );
     });
 
-    // Watchdog: if the board stops sending, flip to offline after STALE_MS.
+    // Watchdog: staleness threshold adapts to which feed we've seen.
     const watchdog = window.setInterval(() => {
-      if (lastRef.current && Date.now() - lastRef.current > STALE_MS) {
-        setStatus("offline");
-      }
+      if (!lastRef.current) return;
+      const staleMs = liveNodeRef.current ? STALE_FAST_MS : STALE_SLOW_MS;
+      if (Date.now() - lastRef.current > staleMs) setStatus("offline");
     }, 5000);
 
     // If nothing ever arrives, don't hang on "connecting".
@@ -140,12 +178,13 @@ export function useSensorData(): SensorState {
     }, CONNECT_TIMEOUT_MS);
 
     return () => {
+      offLive();
       offLatest();
       offHistory();
       window.clearInterval(watchdog);
       window.clearTimeout(connectTimeout);
     };
-  }, []);
+  }, [enabled]);
 
   return { latest, history, status, lastUpdate };
 }

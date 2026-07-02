@@ -37,6 +37,8 @@ interface RealtimeChartProps {
   history: SensorReading[];
   series: Series[];
   unit?: string;
+  /** board online → animated LIVE badge; offline → static "ออฟไลน์" */
+  live?: boolean;
 }
 
 function hexToRgba(color: string, alpha: number) {
@@ -54,6 +56,7 @@ export function RealtimeChart({
   history,
   series,
   unit,
+  live = true,
 }: RealtimeChartProps) {
   const labels = useMemo(
     () =>
@@ -148,12 +151,22 @@ export function RealtimeChart({
             <h3 className="text-base font-bold">{title}</h3>
             {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
           </div>
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-safe">
+          <span
+            className={`flex items-center gap-1.5 text-[11px] font-medium ${
+              live ? "text-safe" : "text-muted-foreground"
+            }`}
+          >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-safe opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-safe" />
+              {live && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-safe opacity-75" />
+              )}
+              <span
+                className={`relative inline-flex h-2 w-2 rounded-full ${
+                  live ? "bg-safe" : "bg-muted-foreground"
+                }`}
+              />
             </span>
-            LIVE
+            {live ? "LIVE" : "ออฟไลน์"}
           </span>
         </div>
       </CardHeader>

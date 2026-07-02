@@ -25,11 +25,9 @@ const NAV = [
 ];
 
 const STATUS_META: Record<ConnectionStatus, { label: string; cls: string }> = {
-  live: { label: "Live · Firebase", cls: "text-safe" },
-  waiting: { label: "รอข้อมูลเซ็นเซอร์", cls: "text-warn" },
-  demo: { label: "Demo Mode", cls: "text-warn" },
+  live: { label: "ONLINE · บอร์ดเชื่อมต่อ", cls: "text-safe" },
   connecting: { label: "กำลังเชื่อมต่อ…", cls: "text-muted-foreground" },
-  offline: { label: "ออฟไลน์", cls: "text-meat" },
+  offline: { label: "OFFLINE · ไม่พบบอร์ด", cls: "text-meat" },
 };
 
 interface Props {
@@ -51,10 +49,10 @@ export function DashboardSidebar({ status, onNavigate }: Props) {
       {/* connection pill */}
       <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
         <span className="relative flex h-2.5 w-2.5">
-          {status !== "offline" && (
-            <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-75", status === "live" ? "bg-safe" : "bg-warn")} />
+          {status === "live" && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-safe opacity-75" />
           )}
-          <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", status === "live" ? "bg-safe" : status === "offline" ? "bg-meat" : "bg-warn")} />
+          <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", status === "live" ? "bg-safe" : status === "offline" ? "bg-meat" : "bg-muted-foreground")} />
         </span>
         <span className={cn("text-xs font-semibold", meta.cls)}>{meta.label}</span>
       </div>

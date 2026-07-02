@@ -21,6 +21,26 @@ export interface SensorReading {
   timestamp: number;
   /** optional status string reported by the device (e.g. "FRESH") */
   status?: string;
+  /** raw device self-check strings, e.g. { nh3: "OK", h2s: "OFF" } */
+  checks?: { nh3?: string; h2s?: string };
+  /** lithium battery of the sensor box, 0–100 % (sent by the ESP32) */
+  battery?: number;
+}
+
+/** Average a set of readings (used for the 5-minute smoothed verdict). */
+export function averageReadings(readings: SensorReading[]): SensorReading | null {
+  if (!readings.length) return null;
+  const n = readings.length;
+  const mean = (f: (r: SensorReading) => number) =>
+    readings.reduce((a, r) => a + f(r), 0) / n;
+  return {
+    temperature: mean((r) => r.temperature),
+    humidity: mean((r) => r.humidity),
+    nh3: mean((r) => r.nh3),
+    h2s: mean((r) => r.h2s),
+    timestamp: readings[readings.length - 1].timestamp,
+    // no status → analyzeReading classifies the average against thresholds
+  };
 }
 
 export interface QualityVerdict {

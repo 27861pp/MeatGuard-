@@ -16,7 +16,7 @@ import {
   signOut,
   type User,
 } from "firebase/auth";
-import { auth, DEMO_MODE, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider } from "@/lib/firebase";
 
 /** Popups are unreliable on mobile/in-app browsers — prefer the redirect flow there. */
 function isMobileBrowser() {
@@ -36,22 +36,12 @@ export interface AppUser {
 interface AuthContextValue {
   user: AppUser | null;
   loading: boolean;
-  demo: boolean;
   error: string | null;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const DEMO_USER: AppUser = {
-  uid: "demo-user",
-  displayName: "Demo Inspector",
-  email: "demo@meatguard.io",
-  photoURL: "",
-};
-
-const DEMO_KEY = "meatguard.demoSession";
 
 function toAppUser(u: User): AppUser {
   return {
@@ -68,10 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (DEMO_MODE || !auth) {
-      // Restore a simulated session so refresh keeps you logged in.
-      const persisted = sessionStorage.getItem(DEMO_KEY);
-      setUser(persisted ? (JSON.parse(persisted) as AppUser) : null);
+    if (!auth) {
       setLoading(false);
       return;
     }
@@ -90,11 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
-    if (DEMO_MODE || !auth || !googleProvider) {
-      // Simulate the popup latency for a realistic feel.
-      await new Promise((r) => setTimeout(r, 900));
-      sessionStorage.setItem(DEMO_KEY, JSON.stringify(DEMO_USER));
-      setUser(DEMO_USER);
+    if (!auth || !googleProvider) {
+      setError("ระบบยืนยันตัวตนยังไม่พร้อม");
       return;
     }
 
@@ -133,16 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    if (DEMO_MODE || !auth) {
-      sessionStorage.removeItem(DEMO_KEY);
-      setUser(null);
-      return;
-    }
+    if (!auth) return;
     await signOut(auth);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, demo: DEMO_MODE, error, signInWithGoogle, logout }),
+    () => ({ user, loading, error, signInWithGoogle, logout }),
     [user, loading, error, signInWithGoogle, logout]
   );
 

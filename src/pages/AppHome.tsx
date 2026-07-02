@@ -174,18 +174,10 @@ export default function AppHome() {
               <span
                 className={cn(
                   "h-2 w-2 rounded-full",
-                  status === "live" ? "bg-safe" : status === "offline" ? "bg-meat" : "bg-warn"
+                  status === "live" ? "bg-safe" : status === "offline" ? "bg-meat" : "bg-muted-foreground"
                 )}
               />
-              {status === "live"
-                ? "Live"
-                : status === "waiting"
-                  ? "รอเซ็นเซอร์"
-                  : status === "demo"
-                    ? "Demo"
-                    : status === "offline"
-                      ? "ออฟไลน์"
-                      : "เชื่อมต่อ…"}
+              {status === "live" ? "ONLINE" : status === "offline" ? "OFFLINE" : "เชื่อมต่อ…"}
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </span>
           </div>

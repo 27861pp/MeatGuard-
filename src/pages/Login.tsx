@@ -5,7 +5,6 @@ import { ArrowLeft, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { SensorOrb } from "@/components/sections/SensorOrb";
 import { useAuth } from "@/contexts/AuthContext";
-import { DEMO_MODE } from "@/lib/firebase";
 
 function GoogleIcon() {
   return (
@@ -124,13 +123,6 @@ export default function Login() {
               </li>
             </ul>
           </div>
-
-          {DEMO_MODE && (
-            <div className="mt-4 rounded-xl border border-safe/20 bg-safe/[0.06] px-4 py-3 text-center text-xs text-muted-foreground">
-              <span className="font-semibold text-safe">DEMO MODE</span> · ยังไม่ได้ตั้งค่า Firebase —
-              ปุ่มด้านบนจะจำลองการเข้าสู่ระบบให้ทดลองใช้งานได้ทันที
-            </div>
-          )}
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             การเข้าสู่ระบบถือว่าคุณยอมรับเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว

@@ -14,30 +14,16 @@ interface SensorCardProps {
   fraction: number;
   status: MetricStatus;
   decimals?: number;
+  /** is this sensor connected & working right now? (green vs red light) */
+  online: boolean;
+  /** shown under the value when offline, e.g. "ยังไม่ได้เชื่อมต่อ" */
+  offlineNote?: string;
 }
 
 const STATUS = {
-  good: {
-    text: "text-safe",
-    bar: "from-safe to-emerald-300",
-    chip: "bg-safe/10 text-safe border-safe/30",
-    glow: "group-hover:shadow-glow-safe",
-    label: "ปกติ",
-  },
-  warn: {
-    text: "text-warn",
-    bar: "from-warn to-amber-300",
-    chip: "bg-warn/10 text-warn border-warn/30",
-    glow: "group-hover:shadow-[0_0_40px_-6px_hsl(38_92%_50%/0.5)]",
-    label: "เฝ้าระวัง",
-  },
-  bad: {
-    text: "text-meat",
-    bar: "from-meat to-rose-400",
-    chip: "bg-meat/10 text-meat border-meat/30",
-    glow: "group-hover:shadow-glow-meat",
-    label: "เกินกำหนด",
-  },
+  good: { text: "text-safe", bar: "from-safe to-emerald-300", glow: "group-hover:shadow-glow-safe" },
+  warn: { text: "text-warn", bar: "from-warn to-amber-300", glow: "group-hover:shadow-[0_0_40px_-6px_hsl(38_92%_50%/0.5)]" },
+  bad: { text: "text-meat", bar: "from-meat to-rose-400", glow: "group-hover:shadow-glow-meat" },
 } as const;
 
 export function SensorCard({
@@ -49,20 +35,47 @@ export function SensorCard({
   fraction,
   status,
   decimals = 1,
+  online,
+  offlineNote,
 }: SensorCardProps) {
   const s = STATUS[status];
   const pct = Math.max(2, Math.min(100, fraction * 100));
 
   return (
-    <Card className={cn("group glass overflow-hidden transition-all duration-300 hover:-translate-y-1", s.glow)}>
+    <Card className={cn("group glass overflow-hidden transition-all duration-300 hover:-translate-y-1", online && s.glow)}>
       <div className="p-5">
         <div className="flex items-start justify-between">
-          <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04]">
-            <Icon className={cn("h-5 w-5", s.text)} />
+          <span
+            className={cn(
+              "relative grid h-11 w-11 place-items-center rounded-xl border bg-white/[0.04]",
+              online ? "border-white/10" : "border-meat/25"
+            )}
+          >
+            <Icon className={cn("h-5 w-5", online ? s.text : "text-muted-foreground")} />
+            {/* working light */}
+            <span
+              className={cn(
+                "absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-card",
+                online ? "bg-safe" : "bg-meat"
+              )}
+            >
+              {online && (
+                <span className="absolute inset-0 animate-ping rounded-full bg-safe" />
+              )}
+            </span>
           </span>
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold", s.chip)}>
-            <span className={cn("h-1.5 w-1.5 rounded-full bg-current", status !== "good" && "animate-pulse")} />
-            {s.label}
+
+          {/* working status chip */}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+              online
+                ? "border-safe/30 bg-safe/10 text-safe"
+                : "border-meat/30 bg-meat/10 text-meat"
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            {online ? "ทำงาน" : "ขาดการเชื่อมต่อ"}
           </span>
         </div>
 
@@ -71,7 +84,7 @@ export function SensorCard({
           <p className="text-sm font-semibold text-foreground/80">{label}</p>
         </div>
 
-        <div className="mt-2 flex items-end gap-1.5">
+        <div className={cn("mt-2 flex items-end gap-1.5", !online && "opacity-45")}>
           <motion.span
             key={value}
             initial={{ opacity: 0, y: 6 }}
@@ -86,12 +99,16 @@ export function SensorCard({
 
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
           <motion.div
-            className={cn("h-full rounded-full bg-gradient-to-r", s.bar)}
+            className={cn("h-full rounded-full bg-gradient-to-r", online ? s.bar : "from-meat/40 to-meat/20")}
             initial={false}
-            animate={{ width: `${pct}%` }}
+            animate={{ width: `${online ? pct : 100}%` }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           />
         </div>
+
+        {!online && offlineNote && (
+          <p className="mt-2 text-[11px] font-medium text-meat/80">{offlineNote}</p>
+        )}
       </div>
     </Card>
   );

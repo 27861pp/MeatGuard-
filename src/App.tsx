@@ -25,6 +25,7 @@ const Overview = lazy(() => import("@/pages/monitor/Overview"));
 const Sensors = lazy(() => import("@/pages/monitor/Sensors"));
 const Realtime = lazy(() => import("@/pages/monitor/Realtime"));
 const Analysis = lazy(() => import("@/pages/monitor/Analysis"));
+const Admin = lazy(() => import("@/pages/monitor/Admin"));
 
 const SafetyPage = lazy(() => import("@/pages/knowledge/Safety"));
 const HowItWorksPage = lazy(() => import("@/pages/knowledge/HowItWorksPage"));
@@ -76,6 +77,7 @@ export default function App() {
                   <Route path="/sensors" element={<Sensors />} />
                   <Route path="/realtime" element={<Realtime />} />
                   <Route path="/analysis" element={<Analysis />} />
+                  <Route path="/admin" element={<Admin />} />
                 </Route>
 
                 {/* ── standalone in-app pages ── */}

@@ -9,6 +9,7 @@ import {
   LogOut,
   Refrigerator,
   ShieldCheck,
+  SlidersHorizontal,
   Thermometer,
   Utensils,
   type LucideIcon,
@@ -50,7 +51,7 @@ const STATUS_META: Record<ConnectionStatus, { label: string; cls: string }> = {
 
 export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
-  const { status, latest } = useLiveData();
+  const { status, latest, admin } = useLiveData();
   const meta = STATUS_META[status];
   const initial = (user?.displayName || user?.email || "U").charAt(0).toUpperCase();
 
@@ -96,7 +97,14 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
           </span>
           <span className={cn("truncate text-xs font-semibold", meta.cls)}>{meta.label}</span>
         </span>
-        <DeviceBattery percent={latest?.battery} online={status === "live"} />
+        <span className="flex items-center gap-1.5">
+          {admin.config.manual && (
+            <span className="rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[9px] font-bold text-warn">
+              MANUAL
+            </span>
+          )}
+          <DeviceBattery percent={latest?.battery} online={status === "live"} />
+        </span>
       </div>
 
       {/* nav */}
@@ -115,6 +123,7 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
           ทั่วไป
         </p>
         {renderItem({ to: "/home", icon: Home, label: "หน้าสรุป" })}
+        {renderItem({ to: "/admin", icon: SlidersHorizontal, label: "Admin · ควบคุมระบบ" })}
       </nav>
 
       <div className="space-y-3">

@@ -1,5 +1,5 @@
 {
-  "comment": "MEAT GUARD — Firebase Realtime Database security rules. Paste the `rules` object into Firebase Console > Realtime Database > Rules. Nodes: meat/live (fast ~2s feed), meat/latest (1-min snapshot), meat/history (1-min log). The ESP32 signs in with its email/password user, the web app with Google — both satisfy auth != null.",
+  "comment": "MEAT GUARD — Firebase Realtime Database security rules. Paste the `rules` object into Firebase Console > Realtime Database > Rules. Nodes: meat/live (fast ~2s feed), meat/latest (1-min snapshot), meat/history (1-min log), meat/admin (manual-override settings from the Admin page). The ESP32 signs in with its email/password user, the web app with Google — both satisfy auth != null.",
   "rules": {
     ".read": false,
     ".write": false,

@@ -9,7 +9,6 @@ import {
   LogOut,
   Refrigerator,
   ShieldCheck,
-  SlidersHorizontal,
   Thermometer,
   Utensils,
   type LucideIcon,
@@ -123,7 +122,7 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
           ทั่วไป
         </p>
         {renderItem({ to: "/home", icon: Home, label: "หน้าสรุป" })}
-        {renderItem({ to: "/admin", icon: SlidersHorizontal, label: "Admin · ควบคุมระบบ" })}
+        {/* หน้า Admin ไม่แสดงในเมนู — เข้าโดยตรงที่ #/admin เท่านั้น */}
       </nav>
 
       <div className="space-y-3">

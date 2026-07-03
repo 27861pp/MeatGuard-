@@ -17,8 +17,8 @@ Responsive 100% (Desktop / Tablet / Mobile)
 | 🏠 **Landing Page** | Hero · How It Works (Timeline) · Food Safety · Did You Know · Consumption · Storage Guide |
 | 📊 **Monitor Dashboard** | Sensor Cards · Real-Time Charts (Chart.js) · AI-like Analysis (Fresh / Warning / Spoiled) |
 | 🔔 **Notification** | Toast แจ้งเตือนอัตโนมัติเมื่อระดับคุณภาพเปลี่ยน |
-| 🧪 **Demo Mode** | รันได้ทันทีโดยไม่ต้องตั้งค่า Firebase — จำลอง Login + ข้อมูลเซ็นเซอร์ |
-| 🔌 **Hardware Ready** | พร้อมเชื่อมต่อ ESP32 + Sensor จริง (ดู `firmware/esp32_meatguard.ino`) |
+| 📡 **Real-data only** | แสดงเฉพาะค่าจริงจาก ESP32 — มีสถานะ ONLINE/OFFLINE + ไฟสถานะรายเซ็นเซอร์ (ไม่มีข้อมูลจำลอง) |
+| 🔌 **Hardware Ready** | เชื่อมต่อ ESP32 + Sensor จริง (ดู `firmware/esp32_meatguard.ino` — ตรงกับกล่องจริง) |
 
 ---
 
@@ -46,9 +46,9 @@ npm run dev
 npm run build && npm run preview
 ```
 
-> **ยังไม่ต้องตั้งค่าอะไรก็รันได้!** หากไม่มีค่า Firebase ในไฟล์ `.env`
-> ระบบจะเข้าสู่ **DEMO MODE** อัตโนมัติ — จำลองการ Login และสร้างข้อมูลเซ็นเซอร์
-> ให้ทดลองใช้งานครบทุกหน้า
+> **รันได้ทันที** — ค่า Firebase ของโปรเจกต์ฝังไว้ในโค้ดแล้ว (`src/lib/firebase.ts`)
+> เว็บจะเชื่อมต่อ Firebase จริงโดยอัตโนมัติ · ตัวแปร `VITE_FIREBASE_*` ใน `.env`
+> ใช้เฉพาะกรณีต้องการชี้ไปโปรเจกต์ Firebase อื่น (override ค่า default)
 
 ---
 
@@ -120,14 +120,15 @@ meat/
 ```
 src/
 ├── components/
-│   ├── ui/            # shadcn primitives (skeleton, card, button, badge)
-│   ├── layout/        # Navbar, Footer
+│   ├── ui/            # shadcn primitives (skeleton, card, button)
+│   ├── layout/        # Navbar, Footer, MonitorLayout, AppHeader
 │   ├── sections/      # Hero, HowItWorks, FoodSafety, DidYouKnow, ...
-│   └── dashboard/     # SensorCard, RealtimeChart, AnalysisResult, Sidebar, ...
-├── contexts/          # AuthContext (Firebase + demo)
-├── hooks/             # useSensorData (RTDB + demo simulator)
-├── lib/               # analysis, firebase, mockSensor, utils
-└── pages/             # Home, Login, Dashboard, NotFound
+│   ├── recipes/       # RecipeVideoModal
+│   └── dashboard/     # SensorCard, LiveChart, RealtimeChart, AnalysisResult, ...
+├── contexts/          # AuthContext, LiveDataContext (buffer วิต่อวิ + admin override)
+├── hooks/             # useSensorData, useAdminConfig, useClock, useBattery, usePWAInstall
+├── lib/               # analysis (เกณฑ์/เทรนด์), firebase, recipes, utils
+└── pages/             # Home, Login, AppHome, Recipes + monitor/* + knowledge/*
 ```
 
 ---
@@ -150,7 +151,8 @@ src/
 > - `npm run build` (ไม่มี env) → base = **`/MeatGuard-/`** (สำหรับ GitHub Pages)
 > - ตั้ง `VITE_BASE=/` ตอน build → base = **`/`** (สำหรับ Firebase / Vercel / Netlify ที่เสิร์ฟจาก root)
 >
-> ⚠️ ต้องตั้ง `VITE_FIREBASE_*` ตอน build มิฉะนั้นเว็บจะรันเป็น **Demo Mode** (ไม่เชื่อม Firebase จริง)
+> ℹ️ ค่า Firebase ฝังในโค้ดแล้ว — build ที่ไหนก็เชื่อมโปรเจกต์จริงอัตโนมัติ
+> (`VITE_FIREBASE_*` เป็น optional ใช้ override เท่านั้น)
 
 ### ตัวเลือก A — GitHub Pages (อัตโนมัติจาก repo นี้) ⭐
 

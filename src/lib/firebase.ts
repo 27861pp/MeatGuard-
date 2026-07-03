@@ -43,38 +43,20 @@ const firebaseConfig = {
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || DEFAULT_FIREBASE.databaseURL,
 };
 
-/** True only when the minimum required keys are configured. */
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId
-);
+// Config is always present (baked defaults + env overrides) — initialise
+// unconditionally. The app shows only real data; there is no demo fallback.
+const app: FirebaseApp = initializeApp(firebaseConfig);
 
-/** When false, the app generates auth + sensor data locally. */
-export const DEMO_MODE = !isFirebaseConfigured;
-
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let db: Database | undefined;
-let googleProvider: GoogleAuthProvider | undefined;
-
-if (isFirebaseConfigured) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  // Persist the session across reloads / app reopens — sign in once.
-  setPersistence(auth, browserLocalPersistence).catch((e) => {
-    // eslint-disable-next-line no-console
-    console.warn("[MEAT GUARD] could not set local persistence", e);
-  });
-  googleProvider = new GoogleAuthProvider();
-  googleProvider.setCustomParameters({ prompt: "select_account" });
-  if (firebaseConfig.databaseURL) {
-    db = getDatabase(app);
-  }
-} else if (import.meta.env.DEV) {
+const auth: Auth = getAuth(app);
+// Persist the session across reloads / app reopens — sign in once.
+setPersistence(auth, browserLocalPersistence).catch((e) => {
   // eslint-disable-next-line no-console
-  console.info(
-    "%c[MEAT GUARD] Running in DEMO MODE — add Firebase keys to .env for live data.",
-    "color:#22c55e;font-weight:bold"
-  );
-}
+  console.warn("[MEAT GUARD] could not set local persistence", e);
+});
 
-export { app, auth, db, googleProvider };
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
+
+const db: Database = getDatabase(app);
+
+export { auth, db, googleProvider };

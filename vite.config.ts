@@ -7,11 +7,11 @@ import path from "path";
 //
 // Base path:
 //   - dev            → "/"            (clean localhost)
-//   - production     → "/MeatGuard-/" (GitHub Pages project site)
+//   - production     → "./"           (Portable relative base, auto-compatible with GitHub Pages)
 //   - override with VITE_BASE=/ for root hosts (Firebase Hosting / Vercel / Netlify)
 export default defineConfig(({ command }) => {
   const base =
-    command === "build" ? process.env.VITE_BASE ?? "/MeatGuard-/" : "/";
+    command === "build" ? process.env.VITE_BASE ?? "./" : "/";
 
   return {
     base,

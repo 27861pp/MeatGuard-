@@ -179,6 +179,28 @@ export function humidityStatus(value: number): MetricStatus {
   return "warn";
 }
 
+/**
+ * เซ็นเซอร์ถือว่า "ทำงาน/ออนไลน์" เมื่อบอร์ดออนไลน์และมีค่าส่งเข้ามา
+ * - "OFF"    = ยังไม่ได้ต่อเซ็นเซอร์ตัวนั้น → ออฟไลน์
+ * - "RAW=0!" = ไม่มีสัญญาณจากตัวเซ็นเซอร์เลย → ออฟไลน์
+ * - self-check อื่น ๆ (เช่น "Rs LOW!", "SAT!") = ค่ายังเข้ามา → ออนไลน์
+ *   (แสดงเป็นคำเตือนแทน ไม่ใช่ออฟไลน์)
+ */
+export function sensorWorking(boardOnline: boolean, check?: string): boolean {
+  if (!boardOnline) return false;
+  const c = (check ?? "").trim().toUpperCase();
+  return c !== "OFF" && c !== "RAW=0!";
+}
+
+/** ข้อความเตือนจาก self-check ของบอร์ด (มีค่าเข้ามาแต่สัญญาณผิดปกติ) */
+export function sensorWarning(check?: string): string | null {
+  const c = (check ?? "").trim();
+  if (!c) return null;
+  const u = c.toUpperCase();
+  if (u === "OK" || u === "OFF" || u === "RAW=0!") return null;
+  return c; // เช่น "Rs LOW!", "Rs HIGH!", "SAT!"
+}
+
 /* ────────────────────────────────────────────────────────────────────────
  * Trend / outlook — where is the freshness heading?
  * ──────────────────────────────────────────────────────────────────────── */

@@ -50,7 +50,7 @@ function normalize(raw: unknown, fallbackTs: number): SensorReading | null {
     humidity: num(pick("humidity", "hum", "Humidity", "HUM", "h")),
     nh3: num(pick("nh3", "NH3", "ammonia", "Ammonia")),
     h2s: num(pick("h2s", "H2S", "sulfide", "Sulfide")),
-    timestamp: num(pick("timestamp", "time"), fallbackTs),
+    timestamp: num(pick("timestamp", "ts", "time"), fallbackTs),
     status: asStr(statusRaw),
     checks: {
       nh3: asStr(pick("chk135", "chkNh3", "nh3Check")),
@@ -99,12 +99,38 @@ export function useSensorData(enabled = true): SensorState {
       setStatus("live");
     };
 
+    // Firebase delivers the CURRENT snapshot immediately on subscribe — even
+    // if the board stopped sending long ago. Old data must not read as
+    // "online", so a snapshot only counts as fresh when:
+    //   - it carries a device server-timestamp (`ts`) that is recent, or
+    //   - it is a CHANGE observed after subscribing (the board just wrote it).
+    const isInitial = { live: true, latest: true };
+
+    const deviceTs = (raw: unknown): number | null => {
+      if (raw && typeof raw === "object") {
+        const t = (raw as Record<string, unknown>).ts;
+        // sanity: epoch ms after 2020
+        if (typeof t === "number" && t > 1_577_836_800_000) return t;
+      }
+      return null;
+    };
+
     // ── fast feed (new firmware) ─────────────────────────────────────
     const offLive = onValue(
       ref(db, "meat/live"),
       (snap) => {
-        const reading = snap.exists() ? normalize(snap.val(), Date.now()) : null;
-        if (reading) {
+        const wasInitial = isInitial.live;
+        isInitial.live = false;
+        const raw = snap.exists() ? snap.val() : null;
+        const reading = raw ? normalize(raw, Date.now()) : null;
+        if (!reading) return;
+
+        const ts = deviceTs(raw);
+        const fresh =
+          ts !== null ? Date.now() - ts < STALE_FAST_MS : !wasInitial;
+
+        setLatest(reading); // always show the newest data we have
+        if (fresh) {
           liveNodeRef.current = Date.now();
           markFresh(reading);
         }
@@ -118,18 +144,25 @@ export function useSensorData(enabled = true): SensorState {
     const offLatest = onValue(
       ref(db, "meat/latest"),
       (snap) => {
-        const reading = snap.exists() ? normalize(snap.val(), Date.now()) : null;
-        if (!reading) {
-          if (!lastRef.current) setStatus("offline"); // never any data
-          return;
-        }
+        const wasInitial = isInitial.latest;
+        isInitial.latest = false;
+        const raw = snap.exists() ? snap.val() : null;
+        const reading = raw ? normalize(raw, Date.now()) : null;
+        if (!reading) return;
+
         // If the fast feed is flowing, it owns `latest`.
         if (Date.now() - liveNodeRef.current < 15_000) {
           lastRef.current = Date.now();
           setLastUpdate(lastRef.current);
           return;
         }
-        markFresh(reading);
+
+        const ts = deviceTs(raw);
+        const fresh =
+          ts !== null ? Date.now() - ts < STALE_SLOW_MS : !wasInitial;
+
+        setLatest(reading); // show last-known values even when stale
+        if (fresh) markFresh(reading);
       },
       () => setStatus("offline")
     );

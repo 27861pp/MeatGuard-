@@ -1,7 +1,13 @@
 import { motion } from "framer-motion";
 import { Cpu, Droplets, Flame, Thermometer, Wind } from "lucide-react";
 import { useLiveData } from "@/contexts/LiveDataContext";
-import { humidityStatus, metricStatus, SENSOR_RANGE } from "@/lib/analysis";
+import {
+  humidityStatus,
+  metricStatus,
+  SENSOR_RANGE,
+  sensorWarning,
+  sensorWorking,
+} from "@/lib/analysis";
 import { PageHead } from "@/components/PageHead";
 import { Card } from "@/components/ui/card";
 import { ConnBadge } from "@/components/dashboard/ConnBadge";
@@ -21,8 +27,8 @@ export default function Sensors() {
   const { latest, status, lastUpdate } = useLiveData();
   const online = status === "live";
 
-  const sensorUp = (check?: string) =>
-    online && (check === undefined || check.trim().toUpperCase() === "OK");
+  // มีค่าเข้ามา = ออนไลน์ (เขียว) · "OFF"/"RAW=0!"/บอร์ดเงียบ = ออฟไลน์ (แดง)
+  const sensorUp = (check?: string) => sensorWorking(online, check);
 
   const boardOfflineNote = "บอร์ดออฟไลน์";
   const h2sNote = isOff(latest?.checks?.h2s)
@@ -109,6 +115,7 @@ export default function Sensors() {
               status={metricStatus("nh3", latest.nh3)}
               online={sensorUp(latest.checks?.nh3)}
               offlineNote={boardOfflineNote}
+              warnNote={sensorWarning(latest.checks?.nh3) ?? undefined}
             />
             <SensorCard
               icon={Flame}
@@ -121,6 +128,7 @@ export default function Sensors() {
               status={metricStatus("h2s", latest.h2s)}
               online={sensorUp(latest.checks?.h2s)}
               offlineNote={h2sNote}
+              warnNote={sensorWarning(latest.checks?.h2s) ?? undefined}
             />
           </div>
 

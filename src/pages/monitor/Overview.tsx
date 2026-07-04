@@ -23,6 +23,7 @@ import {
   analyzeReading,
   analyzeTrend,
   averageReadings,
+  sensorWorking,
 } from "@/lib/analysis";
 import { PageHead } from "@/components/PageHead";
 import { ConnBadge } from "@/components/dashboard/ConnBadge";
@@ -75,8 +76,8 @@ export default function Overview() {
     [minuteHistory, verdict]
   );
 
-  const sensorUp = (check?: string) =>
-    online && (check === undefined || check.trim().toUpperCase() === "OK");
+  // มีค่าเข้ามา = ออนไลน์ · "OFF"/"RAW=0!"/บอร์ดเงียบ = ออฟไลน์
+  const sensorUp = (check?: string) => sensorWorking(online, check);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

@@ -18,6 +18,8 @@ interface SensorCardProps {
   online: boolean;
   /** shown under the value when offline, e.g. "ยังไม่ได้เชื่อมต่อ" */
   offlineNote?: string;
+  /** self-check warning while still online, e.g. "Rs LOW!" */
+  warnNote?: string;
 }
 
 const STATUS = {
@@ -37,6 +39,7 @@ export function SensorCard({
   decimals = 1,
   online,
   offlineNote,
+  warnNote,
 }: SensorCardProps) {
   const s = STATUS[status];
   const pct = Math.max(2, Math.min(100, fraction * 100));
@@ -108,6 +111,11 @@ export function SensorCard({
 
         {!online && offlineNote && (
           <p className="mt-2 text-[11px] font-medium text-meat/80">{offlineNote}</p>
+        )}
+        {online && warnNote && (
+          <p className="mt-2 text-[11px] font-medium text-warn/90">
+            ⚠ self-check: {warnNote} (ค่ายังเข้ามา — ควรตรวจการคาลิเบรต)
+          </p>
         )}
       </div>
     </Card>

@@ -172,10 +172,12 @@ void sendLive() {
   String st   = getStatus(nh3);
   int    batt = readBatteryPct();
 
-  char s[224];
+  // "ts" = เวลาจริงจากเซิร์ฟเวอร์ Firebase — เว็บใช้เช็คว่าข้อมูลสดหรือค้าง
+  char s[256];
   snprintf(s, sizeof(s),
     "{\"temp\":%.1f,\"humidity\":%.1f,\"nh3\":%.2f,\"h2s\":0,"
-    "\"status\":\"%s\",\"chk135\":\"%s\",\"chk136\":\"OFF\",\"battery\":%d}",
+    "\"status\":\"%s\",\"chk135\":\"%s\",\"chk136\":\"OFF\",\"battery\":%d,"
+    "\"ts\":{\".sv\":\"timestamp\"}}",
     t, h, nh3, st.c_str(), chk.c_str(), batt);
 
   object_t liveObj(s);
@@ -283,11 +285,12 @@ void loop() {
   Serial.printf("    Battery: %d %%\n", batt);
 
   // ---- JSON (h2s=0 เพราะยังไม่ได้ต่อ MQ-136) ----
-  char jsonStr[256];
+  char jsonStr[288];
   snprintf(jsonStr, sizeof(jsonStr),
     "{\"minute\":%d,\"temp\":%.1f,\"humidity\":%.1f,"
     "\"nh3\":%.2f,\"h2s\":0,\"status\":\"%s\","
-    "\"chk135\":\"%s\",\"chk136\":\"OFF\",\"battery\":%d}",
+    "\"chk135\":\"%s\",\"chk136\":\"OFF\",\"battery\":%d,"
+    "\"ts\":{\".sv\":\"timestamp\"}}",
     reading, t, h, ppm_nh3, status.c_str(), chk135.c_str(), batt);
 
   object_t jsonObj(jsonStr);

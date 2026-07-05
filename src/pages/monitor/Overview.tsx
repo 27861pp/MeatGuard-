@@ -10,6 +10,7 @@ import {
   Flame,
   LineChart,
   Refrigerator,
+  RotateCcw,
   ShieldCheck,
   Thermometer,
   Utensils,
@@ -52,7 +53,7 @@ const KNOWLEDGE_LINKS = [
 ] as const;
 
 export default function Overview() {
-  const { latest, minuteHistory, status, lastUpdate } = useLiveData();
+  const { latest, minuteHistory, status, lastUpdate, resetData } = useLiveData();
   const clock = useClock();
   const online = status === "live";
 
@@ -102,6 +103,13 @@ export default function Overview() {
             <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold tabular-nums text-muted-foreground sm:inline">
               {clock.time}
             </span>
+            <button
+              onClick={resetData}
+              title="ล้างค่าที่แสดง (ค่าจะกลับมาเมื่อบอร์ดส่งข้อมูลใหม่)"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-meat/30 hover:bg-meat/10 hover:text-meat"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> ล้างค่า
+            </button>
           </>
         }
       />

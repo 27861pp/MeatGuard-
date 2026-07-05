@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, LogOut, Menu, Utensils, X } from "lucide-react";
+import { LayoutDashboard, Menu, Utensils, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -17,7 +16,6 @@ const NAV_LINKS = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const onHome = location.pathname === "/";
@@ -79,24 +77,9 @@ export function Navbar() {
             <Button variant="ghost" size="sm" onClick={() => navigate("/recipes")}>
               <Utensils /> เมนูแนะนำ
             </Button>
-            {user ? (
-              <>
-                <Button variant="outline" size="sm" onClick={() => navigate("/home")}>
-                  <LayoutDashboard /> หน้าหลัก
-                </Button>
-                <button
-                  onClick={() => logout()}
-                  className="grid h-9 w-9 place-items-center rounded-full border border-white/10 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
-                  title="ออกจากระบบ"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </>
-            ) : (
-              <Button size="sm" onClick={() => navigate("/login")}>
-                เข้าสู่ระบบ
-              </Button>
-            )}
+            <Button size="sm" onClick={() => navigate("/dashboard")}>
+              <LayoutDashboard /> เข้าแดชบอร์ด
+            </Button>
           </div>
 
           {/* mobile toggle */}
@@ -136,20 +119,9 @@ export function Navbar() {
                   <Utensils className="h-4 w-4" /> เมนูแนะนำ (ไก่ · หมู · วัว)
                 </button>
                 <div className="my-2 h-px bg-white/10" />
-                {user ? (
-                  <>
-                    <Button onClick={() => navigate("/home")} className="w-full">
-                      <LayoutDashboard /> เข้าสู่หน้าหลัก
-                    </Button>
-                    <Button variant="outline" onClick={() => logout()} className="w-full">
-                      <LogOut /> ออกจากระบบ
-                    </Button>
-                  </>
-                ) : (
-                  <Button onClick={() => navigate("/login")} className="w-full">
-                    เข้าสู่ระบบด้วย Google
-                  </Button>
-                )}
+                <Button onClick={() => navigate("/dashboard")} className="w-full">
+                  <LayoutDashboard /> เข้าแดชบอร์ด
+                </Button>
               </div>
             </motion.div>
           )}

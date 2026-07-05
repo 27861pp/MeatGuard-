@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -36,6 +37,8 @@ interface LiveDataValue {
   liveBuffer: SensorReading[];
   status: ConnectionStatus;
   lastUpdate: number;
+  /** ล้างค่าที่แสดงทั้งหมด (ค่าเก่า/กราฟ) — กลับมาเองเมื่อบอร์ดส่งข้อมูลใหม่ */
+  resetData: () => void;
   admin: {
     config: AdminConfig;
     save: (patch: Partial<AdminConfig>) => Promise<void>;
@@ -53,7 +56,7 @@ export function LiveDataProvider({
   enabled: boolean;
   children: ReactNode;
 }) {
-  const { latest: rawLatest, history, status: rawStatus, lastUpdate } =
+  const { latest: rawLatest, history, status: rawStatus, lastUpdate, clear } =
     useSensorData(enabled);
   const { config: adminConfig, save: saveAdmin, loaded: adminLoaded } =
     useAdminConfig(enabled);
@@ -88,6 +91,16 @@ export function LiveDataProvider({
     return () => window.clearInterval(id);
   }, [enabled]);
 
+  // บอร์ดหลุด → ล้างกราฟสดอัตโนมัติ (สอดคล้องกับ useSensorData ที่ล้าง latest/history)
+  useEffect(() => {
+    if (rawStatus === "offline") setLiveBuffer([]);
+  }, [rawStatus]);
+
+  const resetData = useCallback(() => {
+    clear();
+    setLiveBuffer([]);
+  }, [clear]);
+
   return (
     <LiveDataContext.Provider
       value={{
@@ -96,6 +109,7 @@ export function LiveDataProvider({
         liveBuffer,
         status: effective.status,
         lastUpdate,
+        resetData,
         admin: { config: adminConfig, save: saveAdmin, loaded: adminLoaded },
       }}
     >

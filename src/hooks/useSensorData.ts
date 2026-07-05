@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { onValue, ref } from "firebase/database";
 import { db } from "@/lib/firebase";
 import type { SensorReading } from "@/lib/analysis";
@@ -23,6 +23,8 @@ interface SensorState {
   status: ConnectionStatus;
   /** epoch ms of the last real reading (0 if none yet) */
   lastUpdate: number;
+  /** ล้างค่าที่แสดง (ใช้ตอนค่าเก่าค้าง) — ค่าจะกลับมาเมื่อบอร์ดส่งข้อมูลใหม่จริง */
+  clear: () => void;
 }
 
 /**
@@ -75,6 +77,17 @@ export function useSensorData(enabled = true): SensorState {
   const [lastUpdate, setLastUpdate] = useState(0);
   const lastRef = useRef(0);
   const liveNodeRef = useRef(0); // last time meat/live delivered (0 = never)
+  // เวลาที่ "ล้างค่า" ล่าสุด — หลังล้างแล้ว ข้อมูลค้าง (ไม่สด) จะไม่ถูกนำมาแสดงอีก
+  const clearedRef = useRef(0);
+
+  /** ล้างค่าที่แสดงทั้งหมด (ค่าเก่าจะไม่กลับมา จนกว่าบอร์ดส่งข้อมูลใหม่จริง ๆ) */
+  const clear = useCallback(() => {
+    clearedRef.current = Date.now();
+    lastRef.current = 0;
+    setLatest(null);
+    setHistory([]);
+    setLastUpdate(0);
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -84,6 +97,7 @@ export function useSensorData(enabled = true): SensorState {
       setLastUpdate(0);
       lastRef.current = 0;
       liveNodeRef.current = 0;
+      clearedRef.current = 0;
       return;
     }
     if (!db) {
@@ -129,10 +143,11 @@ export function useSensorData(enabled = true): SensorState {
         const fresh =
           ts !== null ? Date.now() - ts < STALE_FAST_MS : !wasInitial;
 
-        setLatest(reading); // always show the newest data we have
         if (fresh) {
           liveNodeRef.current = Date.now();
           markFresh(reading);
+        } else if (!clearedRef.current) {
+          setLatest(reading); // show last-known values (until cleared)
         }
       },
       () => {
@@ -161,14 +176,16 @@ export function useSensorData(enabled = true): SensorState {
         const fresh =
           ts !== null ? Date.now() - ts < STALE_SLOW_MS : !wasInitial;
 
-        setLatest(reading); // show last-known values even when stale
         if (fresh) markFresh(reading);
+        else if (!clearedRef.current) setLatest(reading); // stale: show until cleared
       },
       () => setStatus("offline")
     );
 
     // ── minute history for charts / verdict ──────────────────────────
     const offHistory = onValue(ref(db, "meat/history"), (snap) => {
+      // หลังล้างค่า: ไม่นำประวัติเก่ากลับมาแสดง จนกว่าจะมีข้อมูลสดจากบอร์ดอีกครั้ง
+      if (clearedRef.current && !lastRef.current) return;
       const val = snap.val();
       if (!val || typeof val !== "object") return;
 
@@ -199,15 +216,23 @@ export function useSensorData(enabled = true): SensorState {
     });
 
     // Watchdog: staleness threshold adapts to which feed we've seen.
+    // เมื่อบอร์ดหลุด → ตั้งสถานะ OFFLINE และ "ล้างค่าเก่าอัตโนมัติ"
     const watchdog = window.setInterval(() => {
       if (!lastRef.current) return;
       const staleMs = liveNodeRef.current ? STALE_FAST_MS : STALE_SLOW_MS;
-      if (Date.now() - lastRef.current > staleMs) setStatus("offline");
+      if (Date.now() - lastRef.current > staleMs) {
+        setStatus("offline");
+        clear();
+      }
     }, 5000);
 
-    // If nothing ever arrives, don't hang on "connecting".
+    // If no fresh data ever arrives, don't hang on "connecting" — go offline
+    // and drop any stale values that were shown while waiting.
     const connectTimeout = window.setTimeout(() => {
-      setStatus((s) => (s === "connecting" ? "offline" : s));
+      if (!lastRef.current) {
+        clear();
+        setStatus((s) => (s === "connecting" ? "offline" : s));
+      }
     }, CONNECT_TIMEOUT_MS);
 
     return () => {
@@ -217,7 +242,7 @@ export function useSensorData(enabled = true): SensorState {
       window.clearInterval(watchdog);
       window.clearTimeout(connectTimeout);
     };
-  }, [enabled]);
+  }, [enabled, clear]);
 
-  return { latest, history, status, lastUpdate };
+  return { latest, history, status, lastUpdate, clear };
 }

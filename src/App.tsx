@@ -11,7 +11,6 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageLoader } from "@/components/PageLoader";
-import { useAuth } from "@/contexts/AuthContext";
 import { LiveDataProvider } from "@/contexts/LiveDataContext";
 
 const Home = lazy(() => import("@/pages/Home"));
@@ -33,28 +32,25 @@ const StoragePage = lazy(() => import("@/pages/knowledge/StoragePage"));
 const ConsumptionPage = lazy(() => import("@/pages/knowledge/ConsumptionPage"));
 
 /**
- * Root: logged-in users go straight to the dashboard (sign in once → monitor).
- * A "?section=..." link still shows the landing so the marketing sections stay
- * reachable.
+ * Root: everyone goes straight to the dashboard — no login required for
+ * viewing. A "?section=..." link still shows the landing so the marketing
+ * sections stay reachable.
  */
 function RootRoute() {
-  const { user, loading } = useAuth();
   const [params] = useSearchParams();
-  if (loading) return <PageLoader />;
-  if (user && !params.get("section")) return <Navigate to="/dashboard" replace />;
+  if (!params.get("section")) return <Navigate to="/dashboard" replace />;
   return <Home />;
 }
 
 export default function App() {
   const location = useLocation();
-  const { user, loading } = useAuth();
 
   // Marketing navbar/footer only on the public landing (and 404).
   const showChrome =
     location.pathname === "/" || location.pathname === "/404";
 
   return (
-    <LiveDataProvider enabled={!!user && !loading}>
+    <LiveDataProvider enabled>
       <div className="flex min-h-screen flex-col">
         {showChrome && <Navbar />}
 
@@ -65,70 +61,30 @@ export default function App() {
                 <Route path="/" element={<RootRoute />} />
                 <Route path="/login" element={<Login />} />
 
-                {/* ── monitor app (sidebar shell) ── */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <MonitorLayout />
-                    </ProtectedRoute>
-                  }
-                >
+                {/* ── monitor app (sidebar shell) — เปิดดูได้เลย ไม่ต้อง login ── */}
+                <Route element={<MonitorLayout />}>
                   <Route path="/dashboard" element={<Overview />} />
                   <Route path="/sensors" element={<Sensors />} />
                   <Route path="/realtime" element={<Realtime />} />
                   <Route path="/analysis" element={<Analysis />} />
-                  <Route path="/admin" element={<Admin />} />
+                  {/* Admin เขียนค่าเข้า Firebase — ต้อง login (Google) เท่านั้น */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute>
+                        <Admin />
+                      </ProtectedRoute>
+                    }
+                  />
                 </Route>
 
                 {/* ── standalone in-app pages ── */}
-                <Route
-                  path="/home"
-                  element={
-                    <ProtectedRoute>
-                      <AppHome />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/recipes"
-                  element={
-                    <ProtectedRoute>
-                      <Recipes />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/safety"
-                  element={
-                    <ProtectedRoute>
-                      <SafetyPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/how-it-works"
-                  element={
-                    <ProtectedRoute>
-                      <HowItWorksPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/storage"
-                  element={
-                    <ProtectedRoute>
-                      <StoragePage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consumption"
-                  element={
-                    <ProtectedRoute>
-                      <ConsumptionPage />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="/home" element={<AppHome />} />
+                <Route path="/recipes" element={<Recipes />} />
+                <Route path="/safety" element={<SafetyPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/storage" element={<StoragePage />} />
+                <Route path="/consumption" element={<ConsumptionPage />} />
 
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />

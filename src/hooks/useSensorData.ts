@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { onValue, ref } from "firebase/database";
 import { db } from "@/lib/firebase";
 import type { SensorReading } from "@/lib/analysis";
+import { mgDebug } from "@/lib/debug";
 
 const MAX_HISTORY = 30;
 const STALE_SLOW_MS = 90_000; // firmware sending 1/min → offline after 90s
@@ -146,8 +147,16 @@ export function useSensorData(enabled = true): SensorState {
         if (fresh) {
           liveNodeRef.current = Date.now();
           markFresh(reading);
-        } else if (!clearedRef.current) {
-          setLatest(reading); // show last-known values (until cleared)
+          mgDebug("packet ← meat/live", {
+            nh3: reading.nh3,
+            h2s: reading.h2s,
+            temp: reading.temperature,
+            status: reading.status,
+            ageSec: ts ? ((Date.now() - ts) / 1000).toFixed(1) : "n/a",
+          });
+        } else {
+          setStatus("offline");
+          setLatest(null);
         }
       },
       () => {
@@ -176,8 +185,18 @@ export function useSensorData(enabled = true): SensorState {
         const fresh =
           ts !== null ? Date.now() - ts < STALE_SLOW_MS : !wasInitial;
 
-        if (fresh) markFresh(reading);
-        else if (!clearedRef.current) setLatest(reading); // stale: show until cleared
+        if (fresh) {
+          markFresh(reading);
+          mgDebug("packet ← meat/latest", {
+            nh3: reading.nh3,
+            h2s: reading.h2s,
+            temp: reading.temperature,
+            status: reading.status,
+          });
+        } else {
+          setStatus("offline");
+          setLatest(null);
+        }
       },
       () => setStatus("offline")
     );

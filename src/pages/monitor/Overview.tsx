@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -14,18 +14,13 @@ import {
   ShieldCheck,
   Thermometer,
   Utensils,
-  WifiOff,
   Wind,
   type LucideIcon,
 } from "lucide-react";
 import { useLiveData } from "@/contexts/LiveDataContext";
 import { useClock } from "@/hooks/useClock";
-import {
-  analyzeReading,
-  analyzeTrend,
-  averageReadings,
-  sensorWorking,
-} from "@/lib/analysis";
+import { analyzeLatestTrend, analyzeReading, sensorWorking } from "@/lib/analysis";
+import { mgDebug } from "@/lib/debug";
 import { PageHead } from "@/components/PageHead";
 import { ConnBadge } from "@/components/dashboard/ConnBadge";
 import { DeviceBattery } from "@/components/dashboard/DeviceBattery";
@@ -35,8 +30,6 @@ import { StatusToast } from "@/components/dashboard/StatusToast";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { OfflineState } from "@/components/dashboard/OfflineState";
 import { cn } from "@/lib/utils";
-
-const AVG_WINDOW_MS = 5 * 60_000;
 
 const MONITOR_LINKS = [
   { to: "/sensors", icon: Thermometer, label: "เซ็นเซอร์", sub: "สถานะการทำงาน", accent: "text-safe" },
@@ -53,29 +46,41 @@ const KNOWLEDGE_LINKS = [
 ] as const;
 
 export default function Overview() {
-  const { latest, minuteHistory, status, lastUpdate, resetData } = useLiveData();
+  const { latest, status, lastUpdate, resetData } = useLiveData();
   const clock = useClock();
   const online = status === "live";
 
-  // Verdict from the 5-minute average of the board's minute log.
-  const avgReading = useMemo(() => {
-    if (!latest) return null;
-    const anchor = minuteHistory.length
-      ? minuteHistory[minuteHistory.length - 1].timestamp
-      : latest.timestamp;
-    const win = minuteHistory.filter((r) => r.timestamp >= anchor - AVG_WINDOW_MS);
-    return averageReadings(win.length ? win : [latest]) ?? latest;
-  }, [latest, minuteHistory]);
-
+  // ── REAL-TIME ONLY ──────────────────────────────────────────────
+  // ผลวิเคราะห์ + แนวโน้ม คำนวณจาก "packet ล่าสุดจาก ESP32 เพียงชุดเดียว"
+  // ไม่เฉลี่ยกับข้อมูลเก่า / ไม่ใช้ cache / ไม่ใช้ history
+  // (latest เป็น null เมื่อบอร์ดออฟไลน์ → แสดงหน้า "รอ ESP32" แทน)
   const verdict = useMemo(
-    () => (avgReading ? analyzeReading(avgReading) : null),
-    [avgReading]
+    () => (latest ? analyzeReading(latest) : null),
+    [latest]
   );
   const trend = useMemo(
-    () =>
-      verdict && minuteHistory.length >= 3 ? analyzeTrend(minuteHistory, verdict) : null,
-    [minuteHistory, verdict]
+    () => (latest && verdict ? analyzeLatestTrend(latest, verdict) : null),
+    [latest, verdict]
   );
+
+  // Debug (ข้อ 9): พิมพ์ packet + timestamp + ค่าเซ็นเซอร์ + ผลวิเคราะห์ + สถานะ
+  // ที่มาจากชุดข้อมูลเดียวกัน → ตรวจสอบความสอดคล้องได้
+  useEffect(() => {
+    if (!latest || !verdict) return;
+    mgDebug("packet → analysis", {
+      ts: new Date(latest.timestamp).toISOString(),
+      temp: latest.temperature,
+      humidity: latest.humidity,
+      nh3: latest.nh3,
+      h2s: latest.h2s,
+      deviceStatus: latest.status ?? "(none)",
+      verdict: verdict.labelEn,
+      score: verdict.score,
+      trend: trend?.label,
+      direction: trend?.direction,
+      conn: status,
+    });
+  }, [latest, verdict, trend, status]);
 
   // มีค่าเข้ามา = ออนไลน์ · "OFF"/"RAW=0!"/บอร์ดเงียบ = ออฟไลน์
   const sensorUp = (check?: string) => sensorWorking(online, check);
@@ -114,21 +119,6 @@ export default function Overview() {
         }
       />
 
-      {/* board-quiet banner */}
-      {!online && latest && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-meat/25 bg-meat/[0.06] p-4">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-meat/30 bg-meat/10 text-meat">
-            <WifiOff className="h-4 w-4" />
-          </span>
-          <div className="text-sm">
-            <p className="font-semibold text-meat">บอร์ด ESP32 ออฟไลน์</p>
-            <p className="text-muted-foreground">
-              ไม่พบข้อมูลใหม่ — ค่าที่แสดงเป็นข้อมูลล่าสุดก่อนขาดการเชื่อมต่อ
-            </p>
-          </div>
-        </div>
-      )}
-
       {!latest || !verdict ? (
         status === "connecting" ? (
           <DashboardSkeleton />
@@ -137,10 +127,14 @@ export default function Overview() {
         )
       ) : (
         <div className="space-y-6">
-          {/* verdict + trend */}
+          {/* verdict + trend — real-time จาก packet ล่าสุด */}
           <section className="space-y-2">
-            <p className="px-1 text-xs text-muted-foreground">
-              ผลวิเคราะห์จากค่าเฉลี่ย 5 นาทีล่าสุด · กดปุ่ม “ผลวิเคราะห์” เพื่อวิเคราะห์แบบเต็ม 10 นาที
+            <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-safe opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-safe" />
+              </span>
+              วิเคราะห์แบบเรียลไทม์จากค่าล่าสุดของ ESP32 · อัปเดตทันทีทุกครั้งที่บอร์ดส่งข้อมูล
             </p>
             <div className="grid gap-5 lg:grid-cols-[1.55fr_1fr]">
               <AnalysisResult verdict={verdict} />

@@ -26,12 +26,12 @@ export function OfflineState({ status }: { status: ConnectionStatus }) {
           )}
         </span>
         <h2 className="mt-5 text-xl font-extrabold">
-          {connecting ? "กำลังเชื่อมต่อกับบอร์ด…" : "บอร์ด ESP32 ออฟไลน์"}
+          {connecting ? "Waiting for ESP32... (กำลังเชื่อมต่อ)" : "No Live Data (บอร์ดออฟไลน์)"}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {connecting
-            ? "กำลังรอข้อมูลจากกล่องวัดความสด"
-            : "ยังไม่พบข้อมูลจากบอร์ด — ตรวจสอบว่ากล่องเปิดอยู่, เชื่อมต่อ WiFi และเฟิร์มแวร์กำลังส่งข้อมูล แล้วหน้านี้จะแสดงค่าจริงอัตโนมัติ"}
+            ? "กำลังเชื่อมต่อกับบอร์ดเพื่อรอรับข้อมูลชุดใหม่แบบเรียลไทม์..."
+            : "ไม่พบข้อมูลเรียลไทม์จากกล่องเซ็นเซอร์ — กรุณาตรวจสอบว่ากล่องเซ็นเซอร์เปิดอยู่, เชื่อมต่อ WiFi ปกติ และกำลังส่งข้อมูล"}
         </p>
       </div>
     </div>

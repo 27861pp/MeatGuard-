@@ -283,3 +283,66 @@ export function analyzeTrend(
         : TREND_META[outlook].advice,
   };
 }
+
+/**
+ * Estimate the freshness trend strictly from the single latest packet from ESP32.
+ * Calculates an expected degradation trend based on the current temperature and gas levels.
+ * This is 100% real-time, deterministic, and requires no history or cache.
+ */
+export function analyzeLatestTrend(
+  latest: SensorReading,
+  current: QualityVerdict
+): TrendResult {
+  const T = latest.temperature;
+  const nh3 = latest.nh3;
+  const h2s = latest.h2s;
+
+  let direction: TrendDirection = "stable";
+  let ratePerMin = 0;
+
+  if (current.level === "spoiled") {
+    direction = "stable";
+    ratePerMin = 0;
+  } else if (T > 10) {
+    direction = "worsening";
+    // Spoilage rate escalates with temperature and current gas concentration
+    ratePerMin = 0.45 * Math.pow(1.3, (T - 10) / 2) * (1 + nh3 / 12 + h2s / 2);
+  } else if (T > 4) {
+    if (nh3 > 5 || h2s > 0.2) {
+      direction = "worsening";
+      ratePerMin = 0.15 * Math.pow(1.2, (T - 4) / 2) * (1 + nh3 / 15);
+    } else {
+      direction = "stable";
+      ratePerMin = 0.02 * (T - 4);
+    }
+  } else {
+    direction = "stable";
+    ratePerMin = 0.005 * Math.max(0, T);
+  }
+
+  // แนวโน้ม (outlook) = สถานะปัจจุบันของ packet ล่าสุดเสมอ → ตรงกับ Smart Analysis
+  // แบบเรียลไทม์ ส่วน direction/rate คือการประเมินว่ากำลังไปทางไหน (จาก temp/gas)
+  const outlook: QualityLevel = current.level;
+
+  // เนื้อสัตว์เสื่อมสภาพทางเดียว — แนวโน้มมีแค่ "คงที่" หรือ "กำลังเสื่อมสภาพ"
+  const arrow = direction === "worsening" ? "กำลังเสื่อมสภาพ" : "คงที่";
+
+  const rateTxt =
+    direction === "stable"
+      ? "NH₃ คงที่"
+      : `NH₃ +${ratePerMin.toFixed(2)} ppm/นาที (ประเมิน)`;
+
+  const advice =
+    direction === "worsening" && current.level === "fresh"
+      ? "ยังสดอยู่ แต่อุณหภูมิสูงทำให้เสี่ยงเสื่อมสภาพเร็ว — ควรรีบแช่เย็นและเฝ้าระวัง"
+      : TREND_META[outlook].advice;
+
+  return {
+    direction,
+    ratePerMin,
+    outlook,
+    label: TREND_META[outlook].label,
+    headline: `${arrow} · ${rateTxt}`,
+    advice,
+  };
+}

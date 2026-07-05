@@ -29,7 +29,7 @@ export function CallToAction() {
                 <Button size="lg" onClick={() => navigate("/dashboard")}>
                   เปิด Monitor Dashboard <ArrowRight />
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => navigate("/login")}>
+                <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")}>
                   เข้าสู่ระบบ
                 </Button>
               </div>

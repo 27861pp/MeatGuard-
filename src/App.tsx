@@ -9,12 +9,10 @@ import {
 import { AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageLoader } from "@/components/PageLoader";
 import { LiveDataProvider } from "@/contexts/LiveDataContext";
 
 const Home = lazy(() => import("@/pages/Home"));
-const Login = lazy(() => import("@/pages/Login"));
 const AppHome = lazy(() => import("@/pages/AppHome"));
 const Recipes = lazy(() => import("@/pages/Recipes"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -59,7 +57,8 @@ export default function App() {
             <AnimatePresence mode="wait">
               <Routes location={location} key={location.pathname}>
                 <Route path="/" element={<RootRoute />} />
-                <Route path="/login" element={<Login />} />
+                {/* ไม่ใช้ Authentication แล้ว — ลิงก์เก่า /login พาเข้าแดชบอร์ดเลย */}
+                <Route path="/login" element={<Navigate to="/dashboard" replace />} />
 
                 {/* ── monitor app (sidebar shell) — เปิดดูได้เลย ไม่ต้อง login ── */}
                 <Route element={<MonitorLayout />}>
@@ -67,15 +66,8 @@ export default function App() {
                   <Route path="/sensors" element={<Sensors />} />
                   <Route path="/realtime" element={<Realtime />} />
                   <Route path="/analysis" element={<Analysis />} />
-                  {/* Admin เขียนค่าเข้า Firebase — ต้อง login (Google) เท่านั้น */}
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute>
-                        <Admin />
-                      </ProtectedRoute>
-                    }
-                  />
+                  {/* Admin ซ่อนจากเมนู — เข้าตรงที่ #/admin (ไม่มี login แล้ว) */}
+                  <Route path="/admin" element={<Admin />} />
                 </Route>
 
                 {/* ── standalone in-app pages ── */}

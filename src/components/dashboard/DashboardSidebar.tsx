@@ -6,7 +6,6 @@ import {
   Gauge,
   Home,
   LineChart,
-  LogOut,
   Refrigerator,
   ShieldCheck,
   Thermometer,
@@ -14,7 +13,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { useAuth } from "@/contexts/AuthContext";
 import { useLiveData } from "@/contexts/LiveDataContext";
 import { DeviceBattery } from "@/components/dashboard/DeviceBattery";
 import type { ConnectionStatus } from "@/hooks/useSensorData";
@@ -49,10 +47,8 @@ const STATUS_META: Record<ConnectionStatus, { label: string; cls: string }> = {
 };
 
 export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, logout } = useAuth();
   const { status, latest, admin } = useLiveData();
   const meta = STATUS_META[status];
-  const initial = (user?.displayName || user?.email || "U").charAt(0).toUpperCase();
 
   const renderItem = (n: NavItem) => (
     <NavLink
@@ -125,36 +121,9 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
         {/* หน้า Admin ไม่แสดงในเมนู — เข้าโดยตรงที่ #/admin เท่านั้น */}
       </nav>
 
-      {/* แสดงเฉพาะตอน login (ใช้กับหน้า Admin) — โหมดดูทั่วไปไม่ต้อง login */}
-      {user && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt={user.displayName ?? "user"}
-                className="h-9 w-9 rounded-full object-cover ring-2 ring-white/10"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-meat to-safe text-sm font-bold text-white">
-                {initial}
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{user.displayName ?? "ผู้ใช้งาน"}</p>
-              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => logout()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-meat/30 hover:bg-meat/10 hover:text-meat"
-          >
-            <LogOut className="h-4 w-4" /> ออกจากระบบ
-          </button>
-        </div>
-      )}
+      <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+        <ShieldCheck className="h-3 w-3" /> MEAT GUARD · Smart Food Safety
+      </div>
     </div>
   );
 }

@@ -61,7 +61,16 @@ export function useAdminConfig(enabled: boolean) {
 
   const save = useCallback(async (patch: Partial<AdminConfig>) => {
     if (!db) return;
-    await update(ref(db, "meat/admin"), { ...patch, updatedAt: Date.now() });
+    try {
+      await update(ref(db, "meat/admin"), { ...patch, updatedAt: Date.now() });
+    } catch (e) {
+      // เขียนไม่ผ่าน (มักเป็นเพราะ rules ยังไม่เปิด meat/admin ให้เขียนแบบ public)
+      // eslint-disable-next-line no-console
+      console.error("[MEAT GUARD] admin save failed — ตรวจสอบ Database Rules:", e);
+      window.alert(
+        "บันทึกไม่สำเร็จ — ต้องตั้ง Firebase Rules ให้ meat/admin เขียนได้ (ดูไฟล์ FIREBASE_RULES.json)"
+      );
+    }
   }, []);
 
   return { config, save, loaded };

@@ -10,13 +10,6 @@
  * a fork at a different project).
  */
 import { initializeApp, type FirebaseApp } from "firebase/app";
-import {
-  browserLocalPersistence,
-  getAuth,
-  GoogleAuthProvider,
-  setPersistence,
-  type Auth,
-} from "firebase/auth";
 import { getDatabase, type Database } from "firebase/database";
 
 // Default project: meat-83f83 (baked in so the deployed app connects to real
@@ -44,19 +37,10 @@ const firebaseConfig = {
 };
 
 // Config is always present (baked defaults + env overrides) — initialise
-// unconditionally. The app shows only real data; there is no demo fallback.
+// unconditionally. No Authentication: the app reads/writes the Realtime
+// Database directly (access is governed by the database security rules).
 const app: FirebaseApp = initializeApp(firebaseConfig);
-
-const auth: Auth = getAuth(app);
-// Persist the session across reloads / app reopens — sign in once.
-setPersistence(auth, browserLocalPersistence).catch((e) => {
-  // eslint-disable-next-line no-console
-  console.warn("[MEAT GUARD] could not set local persistence", e);
-});
-
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: "select_account" });
 
 const db: Database = getDatabase(app);
 
-export { auth, db, googleProvider };
+export { db };

@@ -38,7 +38,7 @@ export function Footer() {
             <h4 className="mb-3 text-sm font-semibold">ระบบ</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to="/dashboard" className="hover:text-foreground">Monitor Dashboard</Link></li>
-              <li><Link to="/login" className="hover:text-foreground">เข้าสู่ระบบ</Link></li>
+              <li><Link to="/dashboard" className="hover:text-foreground">เข้าสู่ระบบ</Link></li>
               <li className="flex items-center gap-2 pt-1">
                 <a href="https://github.com/27861pp/MeatGuard-" target="_blank" rel="noopener noreferrer" className="grid h-8 w-8 place-items-center rounded-lg glass hover:text-foreground" aria-label="GitHub"><Github className="h-4 w-4" /></a>
                 <a href="mailto:hello@meatguard.io" className="grid h-8 w-8 place-items-center rounded-lg glass hover:text-foreground" aria-label="Email"><Mail className="h-4 w-4" /></a>

@@ -12,7 +12,6 @@ import {
   Flame,
   Gauge,
   LayoutDashboard,
-  LogOut,
   Refrigerator,
   Thermometer,
   Utensils,
@@ -20,7 +19,6 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { InstallApp } from "@/components/InstallApp";
-import { useAuth } from "@/contexts/AuthContext";
 import { useClock } from "@/hooks/useClock";
 import { useBattery } from "@/hooks/useBattery";
 import { useLiveData } from "@/contexts/LiveDataContext";
@@ -41,15 +39,12 @@ const SHORTCUTS = [
 ] as const;
 
 export default function AppHome() {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { hm, seconds, date } = useClock();
   const battery = useBattery();
   const { latest, status } = useLiveData();
 
   const verdict = useMemo(() => (latest ? analyzeReading(latest) : null), [latest]);
-  const firstName = (user?.displayName || user?.email || "ผู้ใช้งาน").split(" ")[0];
-  const initial = firstName.charAt(0).toUpperCase();
 
   const BatteryIcon = battery.charging
     ? BatteryCharging
@@ -102,22 +97,13 @@ export default function AppHome() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-4"
         >
-          {user?.photoURL ? (
-            <img
-              src={user.photoURL}
-              alt={firstName}
-              referrerPolicy="no-referrer"
-              className="h-14 w-14 rounded-2xl object-cover ring-2 ring-white/10"
-            />
-          ) : (
-            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-meat to-safe text-xl font-bold text-white">
-              {initial}
-            </span>
-          )}
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-meat to-safe text-xl font-bold text-white">
+            🥩
+          </span>
           <div>
             <p className="text-sm text-muted-foreground">{date}</p>
             <h1 className="text-2xl font-extrabold leading-tight">
-              สวัสดี, {firstName} 👋
+              สวัสดี 👋 ยินดีต้อนรับ
             </h1>
           </div>
         </motion.div>
@@ -232,13 +218,6 @@ export default function AppHome() {
           </div>
         </div>
 
-        {/* ── logout ── */}
-        <button
-          onClick={() => logout()}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 py-3.5 text-sm font-medium text-muted-foreground transition-colors hover:border-meat/30 hover:bg-meat/10 hover:text-meat"
-        >
-          <LogOut className="h-4 w-4" /> ออกจากระบบ
-        </button>
       </div>
     </motion.div>
   );

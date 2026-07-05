@@ -1,23 +1,29 @@
 {
-  "comment": "MEAT GUARD — Firebase Realtime Database security rules. Paste the `rules` object into Firebase Console > Realtime Database > Rules. Nodes: meat/live (fast ~2s feed), meat/latest (1-min snapshot), meat/history (1-min log), meat/admin (manual-override settings from the Admin page). The ESP32 signs in with its email/password user, the web app with Google — both satisfy auth != null.",
+  "comment": "MEAT GUARD — Firebase Realtime Database security rules (โหมดไม่ใช้ Authentication บนเว็บ). วาง object `rules` ใน Firebase Console > Realtime Database > Rules. เว็บอ่านข้อมูลและเขียน meat/admin ได้โดยไม่ต้อง login · ส่วนโหนดเซ็นเซอร์ (live/latest/history) เขียนได้เฉพาะบัญชีอุปกรณ์ ESP32 (email/password) เพื่อกันคนอื่นปลอมค่าเซ็นเซอร์",
   "rules": {
     ".read": false,
     ".write": false,
 
     "meat": {
-      ".read": "auth != null",
-      ".write": "auth != null",
+      ".read": true,
+
+      "admin": {
+        ".write": true
+      },
 
       "live": {
+        ".write": "auth != null",
         ".validate": "newData.hasChildren(['temp','humidity','nh3','h2s'])"
       },
       "latest": {
+        ".write": "auth != null",
         ".validate": "newData.hasChildren(['temp','humidity','nh3','h2s'])"
       },
       "history": {
-        "$entry": {
-          ".validate": "newData.hasChildren(['temp','humidity','nh3','h2s'])"
-        }
+        ".write": "auth != null"
+      },
+      "testFinished": {
+        ".write": "auth != null"
       }
     }
   }
